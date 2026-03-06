@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NGO Report — Admin Panel</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700;800&display=swap');
+  :root {
+    --bg:#0a0c12; --surface:#111520; --card:#161b2e; --border:#252d45;
+    --accent:#4f8ef7; --accent2:#7c3aed; --green:#10b981; --red:#ef4444;
+    --orange:#f59e0b; --purple:#a78bfa; --text:#e2e8f0; --muted:#64748b;
+    --mono:'JetBrains Mono',monospace; --sans:'Syne',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+
+  /* LOGIN */
+  #loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 0%,#1a2550 0%,#0a0c12 70%);}
+  .login-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:48px;width:420px;box-shadow:0 24px 80px rgba(0,0,0,.6);}
+  .login-logo{font-size:11px;letter-spacing:4px;text-transform:uppercase;color:var(--accent);font-family:var(--mono);margin-bottom:8px;}
+  .login-title{font-size:28px;font-weight:800;margin-bottom:4px;}
+  .login-sub{color:var(--muted);font-size:13px;margin-bottom:36px;font-family:var(--mono);}
+  .field{margin-bottom:20px;}
+  .field label{display:block;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;font-family:var(--mono);}
+  .field input,.field select{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;color:var(--text);font-family:var(--mono);font-size:14px;outline:none;transition:border-color .2s;}
+  .field input:focus,.field select:focus{border-color:var(--accent);}
+
+  /* BUTTONS */
+  .btn{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:8px;border:none;cursor:pointer;font-family:var(--sans);font-weight:600;font-size:13px;transition:all .15s;white-space:nowrap;}
+  .btn-primary{background:var(--accent);color:#fff;} .btn-primary:hover{background:#3b7de8;transform:translateY(-1px);}
+  .btn-danger{background:var(--red);color:#fff;} .btn-danger:hover{background:#dc2626;}
+  .btn-success{background:var(--green);color:#fff;} .btn-success:hover{background:#059669;}
+  .btn-warn{background:var(--orange);color:#000;} .btn-warn:hover{background:#d97706;}
+  .btn-purple{background:var(--accent2);color:#fff;} .btn-purple:hover{background:#6d28d9;}
+  .btn-ghost{background:var(--border);color:var(--text);} .btn-ghost:hover{background:var(--muted);}
+  .btn-full{width:100%;justify-content:center;}
+  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+  .btn-xs{padding:5px 10px;font-size:11px;border-radius:6px;}
+
+  /* APP */
+  #appScreen{display:none;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:56px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+  .topbar-brand{font-size:11px;letter-spacing:3px;text-transform:uppercase;font-family:var(--mono);color:var(--accent);}
+  .topbar-right{display:flex;align-items:center;gap:16px;font-family:var(--mono);font-size:12px;color:var(--muted);}
+  .tabs{display:flex;gap:2px;padding:20px 28px 0;border-bottom:1px solid var(--border);background:var(--surface);}
+  .tab{padding:10px 20px;border-radius:8px 8px 0 0;cursor:pointer;font-weight:600;font-size:13px;color:var(--muted);border:1px solid transparent;border-bottom:none;transition:all .15s;}
+  .tab:hover{color:var(--text);background:var(--card);}
+  .tab.active{color:var(--accent);background:var(--card);border-color:var(--border);margin-bottom:-1px;padding-bottom:11px;}
+  .content{padding:28px;min-height:calc(100vh - 120px);}
+  .panel{display:none;} .panel.active{display:block;}
+
+  /* STATS */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+  .stat-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;}
+  .stat-label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-family:var(--mono);margin-bottom:8px;}
+  .stat-value{font-size:32px;font-weight:800;line-height:1;}
+  .stat-value.blue{color:var(--accent);} .stat-value.green{color:var(--green);}
+  .stat-value.red{color:var(--red);} .stat-value.orange{color:var(--orange);}
+
+  /* TABLE */
+  .table-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  table{width:100%;border-collapse:collapse;}
+  th{text-align:left;padding:10px 16px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-family:var(--mono);font-weight:600;border-bottom:1px solid var(--border);background:var(--surface);}
+  td{padding:12px 16px;border-bottom:1px solid rgba(37,45,69,.5);font-size:13px;vertical-align:middle;}
+  tr:last-child td{border-bottom:none;} tr:hover td{background:rgba(79,142,247,.03);}
+
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;font-family:var(--mono);}
+  .badge-active{background:rgba(16,185,129,.15);color:var(--green);}
+  .badge-trial{background:rgba(124,58,237,.15);color:#a78bfa;}
+  .badge-expired{background:rgba(239,68,68,.15);color:var(--red);}
+  .badge-revoked{background:rgba(100,116,139,.15);color:var(--muted);}
+  .badge-blocked{background:rgba(239,68,68,.15);color:var(--red);}
+  .badge-haspass{background:rgba(16,185,129,.15);color:var(--green);font-size:9px;}
+  .badge-nopass{background:rgba(100,116,139,.15);color:var(--muted);font-size:9px;}
+  .badge-staff{background:rgba(79,142,247,.15);color:var(--accent);}
+  .badge-admin{background:rgba(245,158,11,.15);color:var(--orange);}
+  .badge-supervisor{background:rgba(167,139,250,.15);color:var(--purple);}
+
+  .actions{display:flex;gap:6px;flex-wrap:wrap;}
+  .org-name{font-family:var(--mono);font-weight:600;font-size:13px;}
+  .days-ok{color:var(--green);font-family:var(--mono);font-size:12px;}
+  .days-warn{color:var(--orange);font-family:var(--mono);font-size:12px;}
+  .days-bad{color:var(--red);font-family:var(--mono);font-size:12px;}
+  .days-dead{color:var(--muted);font-family:var(--mono);font-size:12px;}
+
+  /* MODAL */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:36px;width:500px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 40px 100px rgba(0,0,0,.7);animation:slideIn .2s ease;}
+  @keyframes slideIn{from{transform:translateY(16px);opacity:0;}to{transform:none;opacity:1;}}
+  .modal-title{font-size:18px;font-weight:700;margin-bottom:24px;}
+  .modal-footer{display:flex;gap:10px;margin-top:28px;justify-content:flex-end;}
+
+  select,.sel{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-family:var(--sans);font-size:13px;outline:none;cursor:pointer;}
+  select:focus{border-color:var(--accent);}
+
+  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
+  .search-input{flex:1;min-width:200px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 14px;color:var(--text);font-family:var(--mono);font-size:13px;outline:none;}
+  .search-input:focus{border-color:var(--accent);}
+
+  #toast{position:fixed;bottom:28px;right:28px;padding:14px 22px;border-radius:10px;font-family:var(--mono);font-size:13px;font-weight:600;opacity:0;transform:translateY(10px);transition:all .3s;z-index:999;max-width:360px;line-height:1.5;}
+  #toast.show{opacity:1;transform:none;} #toast.ok{background:var(--green);color:#fff;} #toast.err{background:var(--red);color:#fff;}
+
+  .spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .empty-state{text-align:center;padding:48px 20px;color:var(--muted);font-family:var(--mono);font-size:13px;}
+
+  /* DEVICE ITEMS */
+  .device-item{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:12px;}
+  .device-item:last-child{border-bottom:none;}
+  .device-id{color:var(--accent);}
+  .device-date{color:var(--muted);font-size:11px;margin-top:2px;}
+
+  /* DEPT ITEMS */
+  .dept-item{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);font-size:13px;}
+  .dept-item:last-child{border-bottom:none;}
+  .dept-name{font-family:var(--mono);font-weight:600;color:var(--purple);}
+  .dept-date{color:var(--muted);font-size:11px;font-family:var(--mono);}
+
+  /* PASSWORD DISPLAY */
+  .pw-cell{font-family:var(--mono);font-size:11px;cursor:pointer;color:var(--muted);letter-spacing:1px;}
+  .pw-cell:hover{color:var(--text);}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">NGO Report App</div>
+    <div class="login-title">Admin Panel</div>
+    <div class="login-sub">Developer access — Ernest Vincent David</div>
+    <div class="field">
+      <label>Admin Token</label>
+      <input type="password" id="loginToken" placeholder="Enter your admin token…" autocomplete="off">
+    </div>
+    <button class="btn btn-primary btn-full" id="loginBtn" onclick="doLogin()">Connect to Server</button>
+    <div id="loginErr" style="color:var(--red);font-family:var(--mono);font-size:12px;margin-top:14px;display:none;"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appScreen">
+  <div class="topbar">
+    <div class="topbar-brand">⬡ NGO Report · Admin Panel v2.6</div>
+    <div class="topbar-right">
+      <span id="topbarOrg">—</span>
+      <button class="btn btn-ghost" style="padding:6px 14px;font-size:12px;" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active"  onclick="switchTab('licenses')">Licences</div>
+    <div class="tab"         onclick="switchTab('users')">Users</div>
+    <div class="tab"         onclick="switchTab('departments')">Departments</div>
+    <div class="tab"         onclick="switchTab('devices')">Devices</div>
+  </div>
+
+  <div class="content">
+
+    <!-- LICENCES -->
+    <div id="panel-licenses" class="panel active">
+      <div class="stats" id="statsRow">
+        <div class="stat-card"><div class="stat-label">Total Orgs</div><div class="stat-value blue"   id="s-total">—</div></div>
+        <div class="stat-card"><div class="stat-label">Active</div>    <div class="stat-value green"  id="s-active">—</div></div>
+        <div class="stat-card"><div class="stat-label">Expired</div>   <div class="stat-value red"    id="s-expired">—</div></div>
+        <div class="stat-card"><div class="stat-label">Revoked</div>   <div class="stat-value orange" id="s-revoked">—</div></div>
+      </div>
+      <div class="toolbar">
+        <input class="search-input" id="licSearch" placeholder="Search org name or email…" oninput="filterLicenses()">
+        <button class="btn btn-primary" onclick="openAddModal()">+ Add Licence</button>
+        <button class="btn btn-ghost"   onclick="loadLicenses()">↻ Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Organisation</th><th>Org ID</th><th>Status</th><th>Expiry</th>
+            <th>Days Left</th><th>Type</th><th>Email</th><th>Client PW</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="licTable"><tr><td colspan="9" class="empty-state">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div id="panel-users" class="panel">
+      <div class="toolbar">
+        <select id="userOrgSel" onchange="loadUsers()" style="min-width:220px;">
+          <option value="">— Select Organisation —</option>
+        </select>
+        <button class="btn btn-success" id="addUserBtn" onclick="openAddUserModal()" disabled>+ Add User</button>
+        <button class="btn btn-ghost"   onclick="loadUsers()">↻ Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Username</th><th>Password</th><th>Role</th><th>Department</th>
+            <th>Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="usersTable"><tr><td colspan="6" class="empty-state">Select an organisation above</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- DEPARTMENTS -->
+    <div id="panel-departments" class="panel">
+      <div class="toolbar">
+        <select id="deptOrgSel" onchange="loadDepartments()" style="min-width:220px;">
+          <option value="">— Select Organisation —</option>
+        </select>
+        <button class="btn btn-purple" id="addDeptBtn" onclick="openAddDeptModal()" disabled>+ Add Department</button>
+        <button class="btn btn-ghost"  onclick="loadDepartments()">↻ Refresh</button>
+      </div>
+      <div class="table-wrap" id="deptList">
+        <div class="empty-state">Select an organisation above</div>
+      </div>
+    </div>
+
+    <!-- DEVICES -->
+    <div id="panel-devices" class="panel">
+      <div class="toolbar">
+        <select id="devOrgSel" onchange="loadDevices()" style="min-width:220px;">
+          <option value="">— Select Organisation —</option>
+        </select>
+        <span id="devCount" style="font-family:var(--mono);font-size:12px;color:var(--muted);"></span>
+        <button class="btn btn-ghost" onclick="loadDevices()">↻ Refresh</button>
+      </div>
+      <div class="table-wrap" id="devList">
+        <div class="empty-state">Select an organisation above</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODALS -->
+
+<!-- Add/Edit Licence -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-title" id="addModalTitle">Add New Licence</div>
+    <div class="field"><label>Organisation Name</label>
+      <input type="text" id="m-org" placeholder="e.g. women-shelter-lusaka">
+    </div>
+    <div class="field"><label>Org ID</label>
+      <input type="text" id="m-orgid" placeholder="e.g. WSL-01 (optional)">
+    </div>
+    <div class="field"><label>Email</label>
+      <input type="text" id="m-email" placeholder="contact@org.com">
+    </div>
+    <div class="field"><label>Licence Type</label>
+      <select id="m-type" style="width:100%;">
+        <option value="ANNUAL">Annual</option>
+        <option value="TRIAL">Trial</option>
+        <option value="LIFETIME">Lifetime</option>
+      </select>
+    </div>
+    <div class="field"><label>Duration (days)</label>
+      <input type="number" id="m-days" value="365" min="1">
+    </div>
+    <div class="field"><label>Notes</label>
+      <input type="text" id="m-notes" placeholder="Optional notes">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addModal')">Cancel</button>
+      <button class="btn btn-primary" id="addSaveBtn" onclick="saveLicense()">Save Licence</button>
+    </div>
+  </div>
+</div>
+
+<!-- Extend Licence -->
+<div class="modal-overlay" id="extendModal">
+  <div class="modal">
+    <div class="modal-title">Extend Licence</div>
+    <div style="font-family:var(--mono);font-size:13px;color:var(--muted);margin-bottom:20px;" id="extendOrgLabel">—</div>
+    <div class="field"><label>Days to Add</label>
+      <input type="number" id="extendDays" value="365" min="1">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('extendModal')">Cancel</button>
+      <button class="btn btn-success" onclick="doExtend()">Extend</button>
+    </div>
+  </div>
+</div>
+
+<!-- Set Client Password -->
+<div class="modal-overlay" id="pwModal">
+  <div class="modal">
+    <div class="modal-title">Set Client Panel Password</div>
+    <div style="font-family:var(--mono);font-size:13px;color:var(--muted);margin-bottom:6px;" id="pwOrgLabel">—</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.6;">
+      This is the password the client uses to log in to the Client Panel.
+    </div>
+    <div class="field"><label>New Password (min 4 chars)</label>
+      <input type="text" id="pwInput" placeholder="e.g. Shelter2026!">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('pwModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="doSetPassword()">Set Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- Block User -->
+<div class="modal-overlay" id="blockModal">
+  <div class="modal">
+    <div class="modal-title">Block User</div>
+    <div style="font-family:var(--mono);font-size:13px;color:var(--muted);margin-bottom:20px;" id="blockUserLabel">—</div>
+    <div class="field"><label>Reason / Notes</label>
+      <input type="text" id="blockNotes" placeholder="Optional reason…">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('blockModal')">Cancel</button>
+      <button class="btn btn-danger" onclick="doBlockUser()">Block User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Edit User -->
+<div class="modal-overlay" id="addUserModal">
+  <div class="modal">
+    <div class="modal-title" id="addUserModalTitle">Add User</div>
+    <div style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:20px;" id="addUserOrgLabel">—</div>
+    <div class="field"><label>Username</label>
+      <input type="text" id="newUsername" placeholder="e.g. john.doe (lowercase)">
+    </div>
+    <div class="field"><label>Password <span style="color:var(--muted);font-size:10px;">(min 4 chars)</span></label>
+      <input type="text" id="newPassword" placeholder="e.g. Welcome2026">
+    </div>
+    <div class="field"><label>Role</label>
+      <select id="newRole" style="width:100%;">
+        <option value="STAFF">STAFF</option>
+        <option value="ADMIN">ADMIN</option>
+        <option value="SUPERVISOR">SUPERVISOR</option>
+      </select>
+    </div>
+    <div class="field"><label>Department <span style="color:var(--muted);font-size:10px;">(optional)</span></label>
+      <select id="newDept" style="width:100%;">
+        <option value="">— None —</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addUserModal')">Cancel</button>
+      <button class="btn btn-success" id="saveUserBtn" onclick="doSaveUser()">Add User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User -->
+<div class="modal-overlay" id="editUserModal">
+  <div class="modal">
+    <div class="modal-title">Edit User</div>
+    <div style="font-family:var(--mono);font-size:13px;color:var(--accent);margin-bottom:20px;" id="editUserLabel">—</div>
+    <div class="field"><label>New Password <span style="color:var(--muted);font-size:10px;">(leave blank to keep current)</span></label>
+      <input type="text" id="editPassword" placeholder="Enter new password…">
+    </div>
+    <div class="field"><label>Role</label>
+      <select id="editRole" style="width:100%;">
+        <option value="STAFF">STAFF</option>
+        <option value="ADMIN">ADMIN</option>
+        <option value="SUPERVISOR">SUPERVISOR</option>
+      </select>
+    </div>
+    <div class="field"><label>Department</label>
+      <select id="editDept" style="width:100%;">
+        <option value="">— None —</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('editUserModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="doEditUser()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Department -->
+<div class="modal-overlay" id="addDeptModal">
+  <div class="modal">
+    <div class="modal-title">Add Department</div>
+    <div style="font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:20px;" id="addDeptOrgLabel">—</div>
+    <div class="field"><label>Department Name</label>
+      <input type="text" id="newDeptName" placeholder="e.g. Field Operations">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('addDeptModal')">Cancel</button>
+      <button class="btn btn-purple" onclick="doAddDept()">Add Department</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwVtUduUnp0-15kqTSSNhcZ9BqsI805E5GFpTvNREAJST8hgcL_WDi5NfW2pA8rk9E/exec";
+
+let adminToken       = "";
+let allLicenses      = [];
+let currentExtendOrg = "";
+let currentPwOrg     = "";
+let currentBlockOrg  = "";
+let currentBlockUser = "";
+let editingUsername  = "";
+let editingOrg       = "";
+let isEditingUser    = false;
+
+// ── JSONP ────────────────────────────────────────────────────────
+function gasRequest(params, callback) {
+  const cbName = "cb_" + Date.now() + "_" + Math.random().toString(36).substr(2,5);
+  params.callback = cbName;
+  window[cbName] = function(data) {
+    delete window[cbName];
+    const s = document.getElementById(cbName+"_s");
+    if (s) s.remove();
+    callback(null, data);
+  };
+  const qs = Object.entries(params).map(([k,v]) => encodeURIComponent(k)+"="+encodeURIComponent(v)).join("&");
+  const script = document.createElement("script");
+  script.id = cbName+"_s";
+  script.onerror = () => { delete window[cbName]; script.remove(); callback(new Error("Network error")); };
+  script.src = GAS_URL + "?" + qs;
+  document.head.appendChild(script);
+  setTimeout(() => { if (window[cbName]) { delete window[cbName]; const s=document.getElementById(cbName+"_s"); if(s)s.remove(); callback(new Error("Request timed out (15s)")); } }, 15000);
+}
+
+// ── AUTH ─────────────────────────────────────────────────────────
+function doLogin() {
+  const raw = document.getElementById("loginToken").value.trim();
+  if (!raw) return showLoginErr("Enter your admin token");
+  const btn = document.getElementById("loginBtn");
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Connecting…';
+  gasRequest({ action:"list", admintoken:btoa(raw) }, (err, data) => {
+    btn.disabled = false; btn.textContent = "Connect to Server";
+    if (err) return showLoginErr(err.message);
+    if (data.error) return showLoginErr(data.message||"Invalid token");
+    adminToken = raw;
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("appScreen").style.display   = "block";
+    document.getElementById("topbarOrg").textContent = "ernestvdavid@gmail.com";
+    allLicenses = data.licenses || [];
+    renderLicenses(allLicenses);
+    populateOrgSelects(allLicenses);
+  });
+}
+function logout() {
+  adminToken = "";
+  document.getElementById("loginToken").value = "";
+  document.getElementById("loginScreen").style.display = "";
+  document.getElementById("appScreen").style.display   = "none";
+}
+function showLoginErr(msg) {
+  const el = document.getElementById("loginErr");
+  el.textContent = msg; el.style.display = "block";
+}
+document.getElementById("loginToken").addEventListener("keydown", e => { if (e.key==="Enter") doLogin(); });
+
+// ── TABS ─────────────────────────────────────────────────────────
+function switchTab(name) {
+  const panels = ["licenses","users","departments","devices"];
+  document.querySelectorAll(".tab").forEach((t,i) => t.classList.toggle("active", panels[i]===name));
+  document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+  document.getElementById("panel-"+name).classList.add("active");
+}
+
+// ── LICENCES ─────────────────────────────────────────────────────
+function loadLicenses() {
+  gasRequest({ action:"list", admintoken:btoa(adminToken) }, (err, data) => {
+    if (err||data.error) return toast(err?err.message:data.message,"err");
+    allLicenses = data.licenses||[];
+    renderLicenses(allLicenses);
+    populateOrgSelects(allLicenses);
+  });
+}
+function filterLicenses() {
+  const q = document.getElementById("licSearch").value.toLowerCase();
+  renderLicenses(q ? allLicenses.filter(l=>(l.org||"").toLowerCase().includes(q)||(l.email||"").toLowerCase().includes(q)) : allLicenses);
+}
+function renderLicenses(list) {
+  document.getElementById("s-total").textContent   = list.length;
+  document.getElementById("s-active").textContent  = list.filter(l=>l.status==="ACTIVE"||l.status==="TRIAL").length;
+  document.getElementById("s-expired").textContent = list.filter(l=>l.status==="EXPIRED").length;
+  document.getElementById("s-revoked").textContent = list.filter(l=>l.status==="REVOKED").length;
+  const tbody = document.getElementById("licTable");
+  if (!list.length) { tbody.innerHTML='<tr><td colspan="9" class="empty-state">No licences found.</td></tr>'; return; }
+  tbody.innerHTML = list.map(l => {
+    const st   = (l.status||"").toUpperCase();
+    const days = l.daysRemaining;
+    let dHtml;
+    if (st==="REVOKED"||st==="EXPIRED") dHtml=`<span class="days-dead">${st==="REVOKED"?"—":"Expired"}</span>`;
+    else if (days<=0)  dHtml=`<span class="days-bad">Expired</span>`;
+    else if (days<=30) dHtml=`<span class="days-warn">${days}d ⚠</span>`;
+    else               dHtml=`<span class="days-ok">${days}d</span>`;
+    const stBadge = {ACTIVE:"badge-active",TRIAL:"badge-trial",EXPIRED:"badge-expired",REVOKED:"badge-revoked"}[st]||"badge-revoked";
+    const pwBadge = l.hasClientPw ? `<span class="badge badge-haspass">✓ Set</span>` : `<span class="badge badge-nopass">None</span>`;
+    const orgIdHtml = l.orgId ? `<span style="font-family:var(--mono);font-size:11px;color:var(--accent);">${esc(l.orgId)}</span>` : `<span style="color:var(--muted);font-size:11px;">—</span>`;
+    return `<tr>
+      <td><span class="org-name">${esc(l.org)}</span></td>
+      <td>${orgIdHtml}</td>
+      <td><span class="badge ${stBadge}">${st}</span></td>
+      <td style="font-family:var(--mono);font-size:12px;">${l.expiryDate||"—"}</td>
+      <td>${dHtml}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--muted);">${l.licenseType||"—"}</td>
+      <td style="font-size:12px;color:var(--muted);">${esc(l.email||"—")}</td>
+      <td>${pwBadge}</td>
+      <td><div class="actions">
+        <button class="btn btn-success btn-xs" onclick="openExtendModal('${esc(l.org)}')">Extend</button>
+        <button class="btn btn-warn btn-xs"    onclick="openPwModal('${esc(l.org)}')">Set PW</button>
+        ${st!=="REVOKED"?`<button class="btn btn-ghost btn-xs" onclick="doRevoke('${esc(l.org)}')">Revoke</button>`:""}
+        <button class="btn btn-danger btn-xs"  onclick="doDelete('${esc(l.org)}')">Delete</button>
+      </div></td>
+    </tr>`;
+  }).join("");
+}
+function openAddModal() {
+  ["m-org","m-orgid","m-email","m-days","m-notes"].forEach(id => document.getElementById(id).value = id==="m-days"?"365":"");
+  document.getElementById("m-org").disabled = false;
+  document.getElementById("addModalTitle").textContent = "Add New Licence";
+  document.getElementById("addModal").classList.add("open");
+}
+function saveLicense() {
+  const org=document.getElementById("m-org").value.trim().toLowerCase();
+  const orgid=document.getElementById("m-orgid").value.trim();
+  const email=document.getElementById("m-email").value.trim();
+  const type=document.getElementById("m-type").value;
+  const days=parseInt(document.getElementById("m-days").value)||365;
+  const notes=document.getElementById("m-notes").value.trim();
+  if (!org) return toast("Organisation name required","err");
+  const btn=document.getElementById("addSaveBtn"); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Saving…';
+  gasRequest({ action:"add", admintoken:btoa(adminToken), org, orgid, email, type, days, notes }, (err,data) => {
+    btn.disabled=false; btn.textContent="Save Licence";
+    if (err||data.error) return toast(err?err.message:data.message,"err");
+    toast(`✓ Licence ${data.action} for ${data.org}`,"ok");
+    closeModal("addModal"); loadLicenses();
+  });
+}
+function openExtendModal(org) { currentExtendOrg=org; document.getElementById("extendOrgLabel").textContent=org; document.getElementById("extendDays").value="365"; document.getElementById("extendModal").classList.add("open"); }
+function doExtend() {
+  const days=parseInt(document.getElementById("extendDays").value)||365;
+  gasRequest({ action:"extend", admintoken:btoa(adminToken), org:currentExtendOrg, days }, (err,data) => {
+    if (err||data.error) return toast(err?err.message:data.message,"err");
+    toast(`✓ Extended ${currentExtendOrg} → ${data.newExpiryDate}`,"ok"); closeModal("extendModal"); loadLicenses();
+  });
+}
+function doRevoke(org) {
+  if (!confirm(`Revoke licence for "${org}"?\n\nThis will block the app immediately.`)) return;
+  gasRequest({ action:"revoke", admintoken:btoa(adminToken), org }, (err,data) => {
+    if (err||data.error) return toast(err?err.message:data.message,"err");
+    toast(`✓ Revoked: ${org}`,"ok"); loadLicenses();
+  });
+}
+function doDelete(org) {
+  if (!confirm(`PERMANENTLY DELETE licence for "${org}"?\n\nThis cannot be undone.`)) return;
+  gasRequest({ action:"delete", admintoken:btoa(adminToken), org }, (err,data) => {
+    if (err||data.error) return toast(err?err.message:data.message,"err");
+    toast(`✓ Deleted: ${org}`,"ok"); loadLicenses();
+  });
+}
+function openPwModal(org) { currentPwOrg=org; document.getElementById("pwOrgLabel").textContent=org; document.getElementById("pwInput").value=""; document.getElementById("pwModal").classList.add("open"); }
+function doSetPassword() {
+  const pw=document.getElementById("pwInput").value.trim();
+  if (pw.length<4) return toast("Password must be at least 4 characters","err");
+  gasRequest({ action:"setorgpassword", admintoken:btoa(adminToken), org:currentPwOrg, password:pw }, (err,data) => {
+    if (err||data.error) return toast(err?err.message:data.message,"err");
+    toast(`✓ Client password set for ${currentPwOrg}`,"ok"); closeModal("pwModal"); loadLicenses();
+  });
+}
+
+// ── USERS ────────────────────────────────────────────────────────
+function populateOrgSelects(list) {
+  const opts = list.map(l=>`<option value="${esc(l.org)}">${esc(l.org)}</option>`).join("");
+  ["userOrgSel","deptOrgSel","devOrgSel"].forEach(id => {
+    document.getElementById(id).innerHTML = '<option value="">— Select Organisation —</option>' + opts;
+  });
+}
+
+function loadUsers() {
+  const org = document.getElementById("userOrgSel").value;
+  document.getElementById("addUserBtn").disabled = !org;
+  if (!org) { document.getElementById("usersTable").innerHTML='<tr><td colspan="6" class="empty-state">Select an organisation above</td></tr>'; return; }
+  document.getElementById("usersTable").innerHTML='<tr><td colspan="6" class="empty-state"><span class="spinner"></span> Loading…</td></tr>';
+  gasRequest({ action:"listusers", admintoken:btoa(adminToken), org }, (err,data) => {
+    if (err||data.error) return toast(err?err.message:data.message,"err");
+    renderUsers(data.users||[], org);
+  });
+}
+
+function renderUsers(users, org) {
+  const tbody = document.getElementById("usersTable");
+  if (!users.length) { tbody.innerHTML='<tr><td colspan="6" class="empty-state">No users found for this org</td></tr>'; return; }
+  tbody.innerHTML = users.map(u => {
+    const isBlocked = (u.status||"").toUpperCase()==="BLOCKED";
+    const role = (u.role||"STAFF").toUpperCase();
+    const roleBadge = {STAFF:"badge-staff",ADMIN:"badge-admin",SUPERVISOR:"badge-supervisor"}[role]||"badge-staff";
+    const pwDisplay = u.password
+      ? `<span class="pw-cell" title="Click to copy" onclick="copyPw('${esc(u.password)}')">${esc(u.password)}</span>`
+      : `<span style="color:var(--muted);font-size:11px;">—</span>`;
+    return `<tr>
+      <td style="font-family:var(--mono);font-weight:600;">${esc(u.username)}</td>
+      <td>${pwDisplay}</td>
+      <td><span class="badge ${roleBadge}">${role}</span></td>
+      <td style="font-size:12px;color:var(--muted);">${esc(u.department||"—")}</td>
+      <td><span class="badge ${isBlocked?"badge-blocked":"badge-active"}">${isBlocked?"BLOCKED":"ACTIVE"}</span></td>
+      <td><div class="actions">
+        <button class="btn btn-primary btn-xs" onclick="openEditUserModal('${esc(org)}','${esc(u.username)}','${esc(u.role||"STAFF")}','${esc(u.department||"")}')">Edit</button>
+        ${isBlocked
+          ? `<button class="btn btn-success btn-xs" onclick="doUnblock('${esc(org)}','${esc(u.username)}')">Unblock</button>`
+          : `<button class="btn btn-warn btn-xs"    onclick="openBlockModal('${esc(org)}','${esc(u.username)}')">Block</button>`}
+        <button class="btn btn-danger btn-xs" onclick="doDeleteUser('${esc(org)}','${esc(u.username)}')">Delete</button>
+      </div></td>
+    </tr>`;
+  }).join("");
+}
+
+function openAddUserModal() {
+  const org = document.getElementById("userOrgSel").value;
+  isEditingUser = false;
+  document.getElementById("addUserModalTitle").textContent = "Add User";
+  document.getElementById("addUserOrgLabel").textContent   = "Adding user to: " + org;
+  document.getElementById("newUsername").value  = "";
+  document.getElementById("newPassword").value  = "";
+  document.getElementById("newRole").value      = "STAFF";
+  document.getElementById("newUsername").disabled = false;
+  document.getElementById("saveUserBtn").textContent = "Add User";
+  document.getElementById("saveUserBtn").className   = "btn btn-success";
+  // Load departments into dropdown
+  loadDeptsIntoSelect("newDept", org);
+  document.getElementById("addUserModal").classList.add("open");
+}
+
+function openEditUserModal(org, username, role, dept) {
+  editingOrg      = org;
+  editingUsername = username;
+  document.getElementById("editUserLabel").textContent = username + " @ " + org;
+  document.getElementById("editPassword").value = "";
+  document.getElementById("editRole").value     = role||"STAFF";
+  loadDeptsIntoSelect("editDept", org, dept);
+  document.getElementById("editUserModal").classList.add("open");
+}
+
+function loadDeptsIntoSelect(selectId, org, selected) {
+  const sel = document.getElementById(selectId);
+  sel.innerHTML = '<option value="">— None —</option>';
+  gasRequest({ action:"listdepartments", admintoken:btoa(adminToken), org }, (err,data) => {
+    if (err||data.error) return;
+    (data.departments||[]).forEach(d => {
+      const opt = document.createElement("option");
+      opt.value = d.name; opt.textContent = d.name;
+      if (d.name === selected) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  });
+}
+
+function doSaveUser() {
+  const org      = document.getElementById("userOrgSel").value;
+  const username = document.getElementById("newUsername").value.trim().toLowerCase();
+  const password = document.getElementById("newPassword").value.trim();
+  const role     = document.getElementById("newRole").value;
+  const dept     = document.getElementById("newDept").value;
+  if (!username)        return toast("Username required","err");
+  if (password.length<4) return toast("Password must be at least 4 characters","err");
+  const btn = document.getElementById("saveUserBtn"); btn.disabled=true; btn.innerHTML='<span class="spinner"></span> Saving…';
+  gasRequest({ action:"adduserdetailed", admintoken:btoa(adminToken), org, username, password, role, department:dept }, (err,data) => {
+    btn.disabled=false; btn.textContent="Add User";
+    if (err||data.error) return toast(err?err.message:data.message,"err");
+    toast(`✓ User added: ${username}`,"ok"); closeModal("addUserModal"); loadUsers();
+  });
+}
+
+function doEditUser() {
+  const password = document.getElementById("editPassword").value.trim();
+  const role     = document.getElementById("editRole").value;
+  const dept     = document.getElementById("editDept").value;
+  gasRequest({ action:"edituserdetailed", admintoken:btoa(adminToken), org:editingOrg, username:editingUsername, password, role, department:dept }, (err,data) => {
+    if (err||data.error) return toast(err?err.message:data.message,"err");
+    toast(`✓ User updated: ${editingUsername}`,"ok"); closeModal("editUserModal"); loadUsers();
+  });
+}
+
+function openBlockModal(org, username) {
+  currentBlockOrg=org; currentBlockUser=username;
+  document.getElementById("blockUserLabel").textContent = username+" @ "+org;
+  document.getElementById("blockNotes").value = "";
+  document.getElementById("blockModal").classList.add("open");
+}
+function doBlockUser() {
+  const notes = document.getElementById("blockNotes").value.trim();
+  gasRequest({ action:"blockuser", admintoken:btoa(adminToken), org:currentBlockOrg, username:currentBlockUser, blockedby:"admin", notes }, (err,data) => {
+    if (err||data.error) return toast(err?err.message:data.message,"err");
+    toast(`✓ Blocked: ${currentBlockUser}`,"ok"); closeModal("blockModal"); loadUsers();
+  });
+}
+function doUnblock(org, username) {
+  gasRequest({ action:"unblockuser", admintoken:btoa(adminToken), org, username }, (err,data) => {
+    if (err||data.error) return toast(err?err.message:data.message,"err");
+    toast(`✓ Unblocked: ${username}`,"ok"); loadUsers();
+  });
+}
+function doDeleteUser(org, username) {
+  if (!confirm(`Delete user "${username}" from "${org}"?\n\nThis cannot be undone.`)) return;
+  gasRequest({ action:"deleteuser", admintoken:btoa(adminToken), org, username }, (err,data) => {
+    if (err||data.error) return toast(err?err.message:data.message,"err");
+    toast(`✓ Deleted: ${username}`,"ok"); loadUsers();
+  });
+}
+function copyPw(pw) {
+  navigator.clipboard.writeText(pw).then(() => toast("Password copied!","ok"));
+}
+
+// ── DEPARTMENTS ──────────────────────────────────────────────────
+function loadDepartments() {
+  const org = document.getElementById("deptOrgSel").value;
+  document.getElementById("addDeptBtn").disabled = !org;
+  if (!org) { document.getElementById("deptList").innerHTML='<div class="empty-state">Select an organisation above</div>'; return; }
+  document.getElementById("deptList").innerHTML='<div class="empty-state"><span class="spinner"></span> Loading…</div>';
+  gasRequest({ action:"listdepartments", admintoken:btoa(adminToken), org }, (err,data) => {
+    if (err||data.error) return toast(err?err.message:data.message,"err");
+    renderDepartments(data.departments||[], org);
+  });
+}
+
+function renderDepartments(depts, org) {
+  if (!depts.length) {
+    document.getElementById("deptList").innerHTML='<div class="empty-state">No departments yet. Click + Add Department to create one.</div>';
+    return;
+  }
+  document.getElementById("deptList").innerHTML = depts.map(d => `
+    <div class="dept-item">
+      <div>
+        <div class="dept-name">${esc(d.name)}</div>
+        <div class="dept-date">Created: ${d.createdAt ? String(d.createdAt).split("T")[0] : "—"}</div>
+      </div>
+      <button class="btn btn-danger btn-xs" onclick="doDeleteDept('${esc(org)}','${esc(d.name)}')">Delete</button>
+    </div>
+  `).join("");
+}
+
+function openAddDeptModal() {
+  const org = document.getElementById("deptOrgSel").value;
+  document.getElementById("addDeptOrgLabel").textContent = "Adding department to: " + org;
+  document.getElementById("newDeptName").value = "";
+  document.getElementById("addDeptModal").classList.add("open");
+}
+function doAddDept() {
+  const org      = document.getElementById("deptOrgSel").value;
+  const deptname = document.getElementById("newDeptName").value.trim();
+  if (!deptname) return toast("Department name required","err");
+  gasRequest({ action:"adddepartment", admintoken:btoa(adminToken), org, deptname }, (err,data) => {
+    if (err||data.error) return toast(err?err.message:data.message,"err");
+    toast(`✓ Department added: ${deptname}`,"ok"); closeModal("addDeptModal"); loadDepartments();
+  });
+}
+function doDeleteDept(org, deptname) {
+  if (!confirm(`Delete department "${deptname}" from "${org}"?`)) return;
+  gasRequest({ action:"deletedepartment", admintoken:btoa(adminToken), org, deptname }, (err,data) => {
+    if (err||data.error) return toast(err?err.message:data.message,"err");
+    toast(`✓ Department deleted: ${deptname}`,"ok"); loadDepartments();
+  });
+}
+
+// ── DEVICES ──────────────────────────────────────────────────────
+function loadDevices() {
+  const org = document.getElementById("devOrgSel").value;
+  if (!org) { document.getElementById("devList").innerHTML='<div class="empty-state">Select an organisation above</div>'; document.getElementById("devCount").textContent=""; return; }
+  document.getElementById("devList").innerHTML='<div class="empty-state"><span class="spinner"></span> Loading…</div>';
+  gasRequest({ action:"listdevices", admintoken:btoa(adminToken), org }, (err,data) => {
+    if (err||data.error) return toast(err?err.message:data.message,"err");
+    const devices=data.devices||[];
+    document.getElementById("devCount").textContent=`${devices.length} / ${data.maxDevices||10} devices registered`;
+    if (!devices.length) { document.getElementById("devList").innerHTML='<div class="empty-state">No devices registered</div>'; return; }
+    document.getElementById("devList").innerHTML=devices.map(d=>`
+      <div class="device-item">
+        <div><div class="device-id">${esc(d.deviceId)}</div><div class="device-date">Registered: ${d.registeredAt?String(d.registeredAt).split("T")[0]:"—"}</div></div>
+        <button class="btn btn-danger btn-xs" onclick="doRemoveDevice('${esc(d.deviceId)}','${esc(org)}')">Remove</button>
+      </div>`).join("");
+  });
+}
+function doRemoveDevice(deviceId, org) {
+  if (!confirm(`Remove device "${deviceId}"?`)) return;
+  gasRequest({ action:"removedevice", admintoken:btoa(adminToken), deviceid:deviceId, org }, (err,data) => {
+    if (err||data.error) return toast(err?err.message:data.message,"err");
+    toast("✓ Device removed","ok"); loadDevices();
+  });
+}
+
+// ── UTILS ────────────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+function toast(msg, type) {
+  const el=document.getElementById("toast"); el.textContent=msg;
+  el.className="show "+(type||"ok"); clearTimeout(el._t);
+  el._t=setTimeout(()=>el.className="",3500);
+}
+function esc(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+document.querySelectorAll(".modal-overlay").forEach(o => o.addEventListener("click", e => { if(e.target===o) o.classList.remove("open"); }));
+</script>
+</body>
+</html>
