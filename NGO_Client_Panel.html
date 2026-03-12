@@ -1,0 +1,2200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NGO Report App — Organisation Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #141720;
+    --surface2: #1c2030;
+    --border: #2a2f42;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --blue: #3b82f6;
+    --blue-dim: #1e3a5f;
+    --green: #10b981;
+    --green-dim: #064e3b;
+    --yellow: #f59e0b;
+    --yellow-dim: #451a03;
+    --red: #ef4444;
+    --red-dim: #450a0a;
+    --purple: #8b5cf6;
+    --orange: #f97316;
+    --orange-dim: #431407;
+    --sans: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+  /* ── LOGIN ── */
+  #login-overlay {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; z-index: 1000;
+  }
+  .login-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 40px; width: 380px; max-width: 95vw;
+  }
+  .login-icon { font-size: 36px; margin-bottom: 16px; display: block; text-align: center; }
+  .login-title { font-size: 17px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+  .login-sub { color: var(--muted); font-size: 12px; text-align: center; margin-bottom: 26px; line-height: 1.6; }
+  .login-label { font-size: 11px; color: var(--muted); margin-bottom: 5px; display: block; }
+  .login-input {
+    width: 100%; padding: 11px 14px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+    font-family: var(--sans); font-size: 13px; margin-bottom: 12px;
+  }
+  .login-input:focus { outline: none; border-color: var(--blue); }
+  .btn-signin {
+    width: 100%; padding: 12px; background: var(--blue); color: #fff;
+    border: none; border-radius: 8px; font-family: var(--sans);
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity .2s;
+  }
+  .btn-signin:hover { opacity: .85; }
+  .login-err { color: var(--red); font-size: 12px; margin-top: 10px; min-height: 18px; text-align: center; }
+  .login-hint { color: var(--muted); font-size: 11px; text-align: center; margin-top: 14px; }
+
+  /* ── MAIN APP ── */
+  #app { display: none; flex-direction: column; min-height: 100vh; }
+
+  .header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 24px; height: 52px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: 'Syncopate', sans-serif; font-size: 15px; color: var(--blue); font-weight: 700; }
+  .header-sub { color: var(--muted); font-size: 11px; margin-top: 2px; }
+  .btn-signout {
+    background: transparent; color: var(--muted); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px; font-family: var(--sans); font-size: 12px;
+    cursor: pointer; transition: all .2s;
+  }
+  .btn-signout:hover { color: var(--red); border-color: var(--red); }
+
+  .org-banner {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 14px 24px; display: flex; align-items: center; gap: 14px;
+  }
+  .org-avatar {
+    width: 40px; height: 40px; border-radius: 10px; background: var(--blue-dim);
+    border: 1px solid var(--blue); display: flex; align-items: center;
+    justify-content: center; font-size: 18px; flex-shrink: 0;
+  }
+  .org-name { font-size: 15px; font-weight: 700; }
+  .org-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .licence-badge { margin-left: auto; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .lic-active  { background: var(--green-dim); color: var(--green); }
+  .lic-expired { background: var(--yellow-dim); color: var(--yellow); }
+  .lic-revoked { background: var(--red-dim); color: var(--red); }
+
+  .tab-bar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 24px; display: flex; overflow-x: auto;
+  }
+  .tab-btn {
+    padding: 14px 20px; background: transparent; border: none; border-bottom: 2px solid transparent;
+    color: var(--muted); font-family: var(--sans); font-size: 13px; cursor: pointer;
+    transition: all .2s; margin-bottom: -1px; white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+  .content { padding: 24px; flex: 1; max-width: 1000px; width: 100%; margin: 0 auto; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+  }
+  .section-title { font-size: 15px; font-weight: 600; }
+
+  .btn {
+    padding: 8px 16px; border-radius: 8px; border: none;
+    font-family: var(--sans); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all .2s; white-space: nowrap;
+  }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-primary:hover { opacity: .85; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+  .btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red-dim); }
+  .btn-danger:hover { background: var(--red-dim); }
+  .btn-warn { background: transparent; color: var(--yellow); border: 1px solid var(--yellow-dim); }
+  .btn-warn:hover { background: var(--yellow-dim); }
+  .btn-ok { background: transparent; color: var(--green); border: 1px solid var(--green-dim); }
+  .btn-ok:hover { background: var(--green-dim); }
+
+  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    background: var(--surface2); padding: 11px 14px; text-align: left;
+    font-size: 11px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .06em;
+    white-space: nowrap; border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody td { padding: 11px 14px; font-size: 13px; vertical-align: middle; }
+  .loading-row td { text-align: center; color: var(--muted); padding: 28px; }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-active        { background: var(--green-dim); color: var(--green); }
+  .badge-blocked       { background: var(--red-dim); color: var(--red); }
+  .badge-halted        { background: var(--red-dim); color: var(--red); }
+  .badge-trial         { background: #1e3a2f; color: #34d399; }
+  .badge-trial-expired { background: #2d1b00; color: #f97316; }
+  .badge-offline       { background: var(--red-dim); color: var(--red); margin-left: 6px; }
+  .row-offline { background: rgba(239,68,68,0.05) !important; }
+  .row-offline:hover  { background: rgba(239,68,68,0.10) !important; }
+  .days-silent { font-size: 11px; color: var(--red); display: block; margin-top: 2px; font-weight: 600; }
+
+  .info-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px 24px; margin-bottom: 16px;
+  }
+  .info-card h3 {
+    font-size: 13px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .06em; margin-bottom: 14px;
+  }
+  .info-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--border); gap: 12px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { font-size: 12px; color: var(--muted); flex-shrink: 0; }
+  .info-value { font-size: 13px; font-weight: 600; text-align: right; word-break: break-all; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .form-input {
+    width: 100%; padding: 11px 14px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+    font-family: var(--sans); font-size: 13px;
+  }
+  .form-input:focus { outline: none; border-color: var(--blue); }
+  .form-hint { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+
+  .device-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+  .device-stat {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 18px; flex: 1; min-width: 120px;
+  }
+  .device-stat-value { font-size: 22px; font-weight: 700; font-family: 'Syncopate', sans-serif; }
+  .device-stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .dv-total  .device-stat-value { color: var(--blue); }
+  .dv-active .device-stat-value { color: var(--green); }
+  .dv-halted .device-stat-value { color: var(--red); }
+  .dv-trial  .device-stat-value { color: #34d399; }
+  .dv-offline .device-stat-value { color: var(--red); }
+
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    z-index: 500; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 28px; width: 520px; max-width: 95vw;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal h3 { font-size: 15px; margin-bottom: 6px; }
+  .modal .modal-sub { color: var(--muted); font-size: 12px; margin-bottom: 18px; line-height: 1.5; }
+  .modal label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; margin-top: 14px; }
+  .modal input, .modal select, .modal textarea {
+    width: 100%; padding: 10px 12px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+    font-family: var(--sans); font-size: 13px;
+  }
+  .modal input:focus, .modal select:focus, .modal textarea:focus { outline: none; border-color: var(--blue); }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+
+  .empty-state { text-align: center; padding: 48px 24px; color: var(--muted); font-size: 13px; }
+  .spin {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid var(--border); border-top-color: var(--blue);
+    border-radius: 50%; animation: spin .7s linear infinite;
+    vertical-align: middle; margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 20px; font-size: 13px; max-width: 320px;
+    transform: translateY(80px); opacity: 0; transition: all .3s; pointer-events: none;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { border-color: var(--green); color: var(--green); }
+  #toast.error   { border-color: var(--red);   color: var(--red);   }
+  #toast.info    { border-color: var(--blue);  color: var(--blue);  }
+
+  .action-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .health-score {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; border-radius: 50%;
+    font-size: 13px; font-weight: 700; border: 2px solid;
+  }
+  .health-a { color: #10b981; border-color: #10b981; background: #064e3b; }
+  .health-b { color: #34d399; border-color: #34d399; background: #022c22; }
+  .health-c { color: #f59e0b; border-color: #f59e0b; background: #451a03; }
+  .health-d { color: #f97316; border-color: #f97316; background: #431407; }
+  .health-f { color: #ef4444; border-color: #ef4444; background: #450a0a; }
+  .health-bar-wrap { width: 60px; height: 5px; background: var(--border); border-radius: 3px; margin-top: 4px; }
+  .health-bar { height: 100%; border-radius: 3px; transition: width .4s; }
+
+  /* ── FORMS ── */
+  .form-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 10px;
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  }
+  .form-card:hover { border-color: var(--blue-dim); }
+  .form-card-info { flex: 1; min-width: 0; }
+  .form-card-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .form-card-desc { font-size: 12px; color: var(--muted); margin-bottom: 6px; line-height: 1.5; }
+  .form-card-meta { font-size: 11px; color: var(--muted); }
+  .form-card-meta span { margin-right: 14px; }
+
+  .field-builder-row {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .field-builder-row input, .field-builder-row select {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-family: var(--sans);
+    font-size: 12px; padding: 6px 10px;
+  }
+  .field-builder-row input:focus,
+  .field-builder-row select:focus { outline: none; border-color: var(--blue); }
+  .field-label-input { flex: 1; min-width: 140px; }
+  .field-type-select { width: 140px; }
+  .field-req-wrap {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; color: var(--muted); white-space: nowrap;
+  }
+  .field-req-wrap input[type=checkbox] { width: auto; padding: 0; }
+  .btn-remove-field {
+    background: transparent; border: none; color: var(--red);
+    font-size: 16px; cursor: pointer; padding: 0 4px; line-height: 1; flex-shrink: 0;
+  }
+  .btn-remove-field:hover { color: #ff6b6b; }
+  .assigned-to-wrap { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
+  .assigned-to-wrap select { flex: 1; min-width: 160px; }
+  #assigned-device-input { flex: 2; min-width: 200px; }
+
+  /* ── EXPORT FILTER BAR ── */
+  .export-bar {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 16px;
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+  }
+  .export-bar-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
+  .export-bar-group label { font-size: 11px; color: var(--muted); }
+  .export-bar-group select,
+  .export-bar-group input {
+    padding: 8px 10px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); font-family: var(--sans); font-size: 12px;
+  }
+  .export-bar-group select:focus,
+  .export-bar-group input:focus { outline: none; border-color: var(--blue); }
+  .btn-export {
+    background: var(--green); color: #fff; border: none;
+    border-radius: 8px; padding: 9px 18px; font-family: var(--sans);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: opacity .2s; white-space: nowrap; align-self: flex-end;
+  }
+  .btn-export:hover { opacity: .85; }
+  .btn-export:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ── QR CODE MODAL ── */
+  #qr-canvas-wrap { display: flex; justify-content: center; margin: 20px 0 10px; }
+  #qr-canvas-wrap canvas, #qr-canvas-wrap img { border-radius: 8px; border: 8px solid #fff; }
+  .qr-user-label { text-align: center; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .qr-org-label  { text-align: center; font-size: 11px; color: var(--muted); margin-bottom: 14px; }
+  .qr-note { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; font-size: 11px; color: var(--muted); line-height: 1.6; margin-bottom: 4px; }
+  .btn-download-qr {
+    width: 100%; padding: 10px; background: var(--blue); color: #fff;
+    border: none; border-radius: 8px; font-family: var(--sans);
+    font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 14px; transition: opacity .2s;
+  }
+  .btn-download-qr:hover { opacity: .85; }
+
+  .sub-count-bar {
+    font-size: 12px; color: var(--muted); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sub-count-bar b { color: var(--blue); font-family: 'Syncopate', sans-serif; font-size: 15px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════ LOGIN ═══════ -->
+<div id="login-overlay">
+  <div class="login-box">
+    <span class="login-icon">🏢</span>
+    <div class="login-title">Organisation Portal</div>
+    <div class="login-sub">NGO Report App · Manage your organisation's users and account details.</div>
+
+    <label class="login-label">Organisation Name</label>
+    <input type="text" class="login-input" id="login-org"
+      placeholder="e.g. V-KARE Foundation" autocomplete="off">
+
+    <label class="login-label">Password</label>
+    <input type="password" class="login-input" id="login-pw"
+      placeholder="Your portal password" autocomplete="current-password">
+
+    <button class="btn-signin" onclick="signIn()">Sign In</button>
+    <div class="login-err" id="login-err"></div>
+    <div class="login-hint">Don't have a password? Contact your app developer.</div>
+  </div>
+</div>
+
+<!-- ═══════ MAIN APP ═══════ -->
+<div id="app">
+
+  <header class="header">
+    <div>
+      <div class="logo">📋 NGO Report App</div>
+      <div class="header-sub" id="header-orgname">—</div>
+    </div>
+    <button class="btn-signout" onclick="signOut()">Sign Out</button>
+  </header>
+
+  <div class="org-banner">
+    <div class="org-avatar">🏢</div>
+    <div>
+      <div class="org-name" id="banner-orgname">—</div>
+      <div class="org-meta" id="banner-meta">—</div>
+    </div>
+    <span class="licence-badge" id="banner-badge"></span>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab('users',this)">👥 Users</button>
+    <button class="tab-btn"        onclick="showTab('departments',this)">🏬 Departments</button>
+    <button class="tab-btn"        onclick="showTab('devices',this)">📱 Devices</button>
+    <button class="tab-btn"        onclick="showTab('broadcast',this)">📢 Broadcast</button>
+    <button class="tab-btn"        onclick="showTab('submissions',this)">📍 Submissions</button>
+    <button class="tab-btn"        onclick="showTab('forms',this)">📋 Forms</button>
+    <button class="tab-btn"        onclick="showTab('orgdetails',this)">🏢 Org Details</button>
+    <button class="tab-btn"        onclick="showTab('aisettings',this)">🤖 AI Settings</button>
+    <button class="tab-btn"        onclick="showTab('changepassword',this)">🔒 Change Password</button>
+  </div>
+
+  <div class="content">
+
+    <!-- ── USERS ── -->
+    <div id="tab-users" class="tab-panel active">
+      <div class="section-header">
+        <div class="section-title">Staff Users</div>
+        <button class="btn btn-primary btn-sm" onclick="openAddUser()">+ Add User</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Username</th><th>Password</th><th>Role</th><th>Department</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="users-body">
+            <tr class="loading-row"><td colspan="6"><span class="spin"></span>Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── DEPARTMENTS ── -->
+    <div id="tab-departments" class="tab-panel">
+      <div class="section-header">
+        <div class="section-title">Departments</div>
+        <button class="btn btn-primary btn-sm" onclick="openAddDept()">+ Add Department</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+        Departments are used to organise your staff. When you rename a department, all staff assigned to it are updated automatically.
+      </div>
+      <div id="dept-count-bar" style="display:none;margin-bottom:14px">
+        <span style="font-size:12px;color:var(--muted)">
+          <span id="dept-count-val" style="font-size:18px;font-weight:700;color:var(--blue);font-family:'Syncopate',sans-serif">0</span>
+          &nbsp;department(s) registered
+        </span>
+      </div>
+      <div id="depts-list"><div class="empty-state"><span class="spin"></span>Loading…</div></div>
+    </div>
+
+    <!-- ── DEVICES ── -->
+    <div id="tab-devices" class="tab-panel">
+      <div class="section-header">
+        <div class="section-title">Registered Devices</div>
+        <button class="btn btn-ghost btn-sm" onclick="loadDevices()">↻ Refresh</button>
+      </div>
+      <div class="device-summary" id="device-summary" style="display:none">
+        <div class="device-stat dv-total">
+          <div class="device-stat-value" id="dv-stat-total">0</div>
+          <div class="device-stat-label">Total Devices</div>
+        </div>
+        <div class="device-stat dv-active">
+          <div class="device-stat-value" id="dv-stat-active">0</div>
+          <div class="device-stat-label">Active</div>
+        </div>
+        <div class="device-stat dv-halted">
+          <div class="device-stat-value" id="dv-stat-halted">0</div>
+          <div class="device-stat-label">Halted</div>
+        </div>
+        <div class="device-stat dv-trial">
+          <div class="device-stat-value" id="dv-stat-trial">0</div>
+          <div class="device-stat-label">Trial</div>
+        </div>
+        <div class="device-stat dv-offline">
+          <div class="device-stat-value" id="dv-stat-offline">0</div>
+          <div class="device-stat-label">Offline 30d+</div>
+        </div>
+      </div>
+      <div id="halted-info" style="display:none;background:var(--red-dim);border:1px solid var(--red);border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:12px;color:var(--red)">
+        ⚠️ One or more devices are <b>HALTED</b>. Click <b>▶ Restore</b> on the device row to re-enable access.
+      </div>
+      <div id="offline-info" style="display:none;background:rgba(239,68,68,0.08);border:1px solid var(--red);border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:12px;color:var(--red)"></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Device ID</th><th>Current User</th><th>Status</th><th>Registered</th><th>Last Active</th><th>Health</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="devices-body">
+            <tr class="loading-row"><td colspan="7"><span class="spin"></span>Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:14px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);line-height:1.6">
+        <b style="color:var(--text)">ℹ️ About device slots:</b> Each device that logs in uses one slot.
+        Removing a device frees that slot so a new device can register. If a device is lost or replaced, remove it here.
+        Use <b>⏸ Halt</b> to suspend a device without removing it — the slot is kept and access can be restored at any time with <b>▶ Restore</b>.
+        Use <b>👤 Reassign</b> to update which staff member is shown as the current user on a device.
+        Use <b>🔑 Password</b> to reset the password of whoever is currently assigned to the device.
+      </div>
+    </div>
+
+    <!-- ── BROADCAST ── -->
+    <div id="tab-broadcast" class="tab-panel">
+      <div class="section-header"><div class="section-title">📢 Send Broadcast Message</div></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.6">
+        Send a push notification to all staff devices in your organisation.
+        Staff must have opened the app at least once to receive messages.
+      </div>
+      <div class="info-card" style="max-width:560px">
+        <div class="form-group" style="margin-bottom:14px">
+          <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px">Title</label>
+          <input type="text" id="cbc-title" placeholder="e.g. Weekly report reminder" maxlength="100"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:13px">
+        </div>
+        <div class="form-group" style="margin-bottom:18px">
+          <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px">Message</label>
+          <textarea id="cbc-body" placeholder="Type your message here…" maxlength="500" rows="4"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:vertical"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="sendClientBroadcast()">📢 Send to My Staff</button>
+      </div>
+      <div id="cbc-result" style="display:none;margin-top:18px;max-width:560px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px">Broadcast Result</div>
+        <div id="cbc-result-body" style="font-size:13px;color:var(--muted);line-height:1.8"></div>
+      </div>
+    </div>
+
+    <!-- ── SUBMISSIONS ── -->
+    <div id="tab-submissions" class="tab-panel">
+      <div class="section-header">
+        <div class="section-title">📍 Submissions</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="loadSubmissions()">↻ Refresh</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+        View and export all submissions from your staff. Use the filters below to narrow by staff member, date, or form.
+        Click <b>📥 Export to Excel</b> to download filtered results — each form type gets its own sheet with all fields as columns.
+      </div>
+
+      <!-- ── Filter + Export bar ── -->
+      <div class="export-bar">
+        <div class="export-bar-group">
+          <label>Staff Member</label>
+          <select id="filter-staff">
+            <option value="">All Staff</option>
+          </select>
+        </div>
+        <div class="export-bar-group">
+          <label>Form Name</label>
+          <select id="filter-form">
+            <option value="">All Forms</option>
+          </select>
+        </div>
+        <div class="export-bar-group">
+          <label>From Date</label>
+          <input type="date" id="filter-from">
+        </div>
+        <div class="export-bar-group">
+          <label>To Date</label>
+          <input type="date" id="filter-to">
+        </div>
+        <button class="btn-export" onclick="applySubFilters()">🔍 Filter</button>
+        <button class="btn-export" style="background:var(--blue)" onclick="clearSubFilters()">✕ Clear</button>
+        <button class="btn-export" id="btn-export-excel" onclick="exportToExcel()">📥 Export Excel</button>
+      </div>
+
+      <!-- ── Count bar ── -->
+      <div class="sub-count-bar" id="sub-count-bar" style="display:none">
+        Showing <b id="sub-count-val">0</b> submission(s)
+        <span id="sub-filter-note" style="color:var(--yellow)"></span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Sub #</th><th>Form</th><th>Submitted By</th>
+              <th>Date &amp; Time</th><th>Department</th>
+              <th>Latitude</th><th>Longitude</th><th>GPS Status</th><th>Map</th>
+            </tr>
+          </thead>
+          <tbody id="submissions-body">
+            <tr class="loading-row"><td colspan="9"><span class="spin"></span>Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── FORMS ── -->
+    <div id="tab-forms" class="tab-panel">
+      <div class="section-header">
+        <div class="section-title">📋 Form Templates</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="loadForms()">↻ Refresh</button>
+          <button class="btn btn-primary btn-sm" onclick="openFormBuilder(null)">+ New Form</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+        Build form templates here and assign them to your staff devices or specific users.
+        Staff will automatically download assigned forms when they log in to the app.
+        Choose <b>All Devices</b> to send to everyone, or select <b>Specific</b> and enter
+        device IDs / usernames separated by commas.
+      </div>
+      <div id="forms-count-bar" style="display:none;margin-bottom:14px">
+        <span style="font-size:12px;color:var(--muted)">
+          <span id="forms-count-val" style="font-size:18px;font-weight:700;color:var(--blue);font-family:'Syncopate',sans-serif">0</span>
+          &nbsp;form(s) published
+        </span>
+      </div>
+      <div id="forms-list"><div class="empty-state"><span class="spin"></span>Loading…</div></div>
+    </div>
+
+    <!-- ── ORG DETAILS ── -->
+    <div id="tab-orgdetails" class="tab-panel">
+      <div class="info-card">
+        <h3>Licence Information</h3>
+        <div class="info-row"><span class="info-label">Organisation</span><span class="info-value" id="det-org">—</span></div>
+        <div class="info-row"><span class="info-label">Org ID</span><span class="info-value" id="det-orgid">—</span></div>
+        <div class="info-row"><span class="info-label">Licence Type</span><span class="info-value" id="det-type">—</span></div>
+        <div class="info-row"><span class="info-label">Expiry Date</span><span class="info-value" id="det-expiry">—</span></div>
+        <div class="info-row"><span class="info-label">Days Remaining</span><span class="info-value" id="det-days">—</span></div>
+        <div class="info-row"><span class="info-label">Status</span><span class="info-value" id="det-status">—</span></div>
+      </div>
+      <div class="info-card">
+        <h3>Contact Email</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Update the contact email on record for your organisation.</p>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" class="form-input" id="email-input" placeholder="contact@yourorg.com">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="updateEmail()">Update Email</button>
+      </div>
+    </div>
+
+    <!-- ── AI SETTINGS ── -->
+    <div id="tab-aisettings" class="tab-panel">
+      <div class="info-card">
+        <h3>🤖 Gemini AI Key</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.7">
+          Your organisation's Gemini AI key is stored securely on the server — it is never sent to
+          any device. Staff use AI features automatically once a key is saved here.<br><br>
+          Get a free key at
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--blue)">
+            aistudio.google.com/app/apikey
+          </a>
+        </p>
+
+        <!-- Status bar -->
+        <div id="ai-status-bar"
+          style="display:none;border-radius:8px;padding:11px 16px;margin-bottom:18px;
+                 font-size:12px;line-height:1.5;border:1px solid">
+        </div>
+
+        <!-- Input + buttons -->
+        <div class="form-group">
+          <label>Gemini API Key</label>
+          <div style="display:flex;gap:10px;align-items:center">
+            <input type="password" class="form-input" id="ai-key-input"
+              placeholder="AIza…"
+              style="font-family:monospace;flex:1">
+            <button class="btn btn-sm"
+              id="ai-key-toggle"
+              onclick="toggleAiKeyVisibility()"
+              style="background:transparent;border:1px solid var(--border);
+                     color:var(--muted);min-width:36px;padding:6px 10px;
+                     border-radius:6px;cursor:pointer;font-size:14px"
+              title="Show / hide key">👁</button>
+          </div>
+          <div class="form-hint">
+            Paste your full Gemini API key. It will be stored encrypted on the server against your
+            organisation name only — not shared with any other organisation.
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+          <button class="btn btn-primary btn-sm" onclick="doSaveAiKey()">💾 Save Key</button>
+          <button class="btn btn-ghost btn-sm"   onclick="doCheckAiKeyStatus()">🔍 Check Status</button>
+          <button class="btn btn-danger btn-sm"  onclick="doDeleteAiKey()">🗑 Remove Key</button>
+        </div>
+
+        <div style="margin-top:20px;padding:12px 16px;background:var(--surface2);
+                    border:1px solid var(--border);border-radius:8px;
+                    font-size:11px;color:var(--muted);line-height:1.7">
+          <b style="color:var(--text)">ℹ️ How it works</b><br>
+          • Your key is stored on the server — staff devices never see it.<br>
+          • When a staff member submits a form with AI enabled, the app sends the text to the
+            server. The server calls Gemini using your key and returns the result.<br>
+          • Removing the key disables AI for all staff in your organisation immediately.<br>
+          • If you change your key, just paste the new one and click Save — it overwrites the old one.
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CHANGE PASSWORD ── -->
+    <div id="tab-changepassword" class="tab-panel">
+      <div class="info-card">
+        <h3>Change Password</h3>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--muted);line-height:1.6">
+          ℹ️ This password is used to log in to this portal. Choose something secure and share it only with your organisation's administrator.
+        </div>
+        <div class="form-group">
+          <label>Current Password</label>
+          <input type="password" class="form-input" id="cp-current" autocomplete="current-password">
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" class="form-input" id="cp-new" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label>Confirm New Password</label>
+          <input type="password" class="form-input" id="cp-confirm" autocomplete="new-password">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="changePassword()">Update Password</button>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /app -->
+
+<!-- ═══════ MODALS ═══════ -->
+
+<!-- Add User -->
+<div class="modal-overlay" id="modal-add-user">
+  <div class="modal">
+    <h3>Add Staff User</h3>
+    <div class="modal-sub">The username must match exactly what the staff member uses to log in to the app.</div>
+    <label>Username</label>
+    <input type="text" id="au-username" placeholder="lowercase username" autocomplete="off">
+    <label>Password (min 4 chars)</label>
+    <input type="password" id="au-password" autocomplete="new-password">
+    <label>Role</label>
+    <select id="au-role">
+      <option value="STAFF">STAFF</option>
+      <option value="ADMIN">ADMIN</option>
+      <option value="SUPERVISOR">SUPERVISOR</option>
+    </select>
+    <label>Department (optional)</label>
+    <select id="au-dept">
+      <option value="">— None —</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-user')">Cancel</button>
+      <button class="btn btn-primary" onclick="doAddUser()">Add User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User (full: password + role + department) -->
+<div class="modal-overlay" id="modal-edit-user">
+  <div class="modal">
+    <h3>Edit User</h3>
+    <div class="modal-sub">Editing: <b id="eu-name-label">—</b></div>
+    <label>New Password (leave blank to keep current)</label>
+    <input type="password" id="eu-password" autocomplete="new-password" placeholder="Leave blank to keep current">
+    <label>Role</label>
+    <select id="eu-role">
+      <option value="STAFF">STAFF</option>
+      <option value="ADMIN">ADMIN</option>
+      <option value="SUPERVISOR">SUPERVISOR</option>
+    </select>
+    <label>Department</label>
+    <select id="eu-dept">
+      <option value="">— None —</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-edit-user')">Cancel</button>
+      <button class="btn btn-primary" onclick="doEditUser()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Block User -->
+<div class="modal-overlay" id="modal-block-user">
+  <div class="modal">
+    <h3>Block User</h3>
+    <div class="modal-sub"><b id="block-name-label">—</b> will be blocked immediately and cannot log in until unblocked.</div>
+    <label>Reason (optional)</label>
+    <input type="text" id="block-reason" placeholder="Optional reason">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-block-user')">Cancel</button>
+      <button class="btn btn-danger" onclick="doBlockUser()">Block User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remove User -->
+<div class="modal-overlay" id="modal-remove-user">
+  <div class="modal">
+    <h3>Remove User</h3>
+    <div class="modal-sub">This will permanently remove <b id="remove-name-label">—</b>. This cannot be undone. Use <i>Block</i> if you just want to suspend access.</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-remove-user')">Cancel</button>
+      <button class="btn btn-danger" onclick="doRemoveUser()">Remove</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remove Device -->
+<div class="modal-overlay" id="modal-remove-device">
+  <div class="modal">
+    <h3>Remove Device</h3>
+    <div class="modal-sub">
+      This will remove the device from your organisation and free up one device slot.<br><br>
+      <span style="font-family:monospace;font-size:12px;color:var(--muted)" id="remove-device-id">—</span>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px">
+      ⚠️ The staff member using this device will need to re-register it after removal.
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-remove-device')">Cancel</button>
+      <button class="btn btn-danger" onclick="doRemoveDevice()">Remove Device</button>
+    </div>
+  </div>
+</div>
+
+<!-- Halt Device -->
+<div class="modal-overlay" id="modal-halt-device">
+  <div class="modal">
+    <h3>⏸ Halt Device</h3>
+    <div class="modal-sub">
+      The device will be <b>suspended immediately</b>. Staff on this device will not be able to log in until you restore it.<br><br>
+      <span style="font-family:monospace;font-size:12px;color:var(--muted)" id="halt-device-id">—</span>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px">
+      ℹ️ Submissions already made on the device are not affected. The device slot is kept — you can restore access at any time.
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-halt-device')">Cancel</button>
+      <button class="btn btn-danger" onclick="doHaltDevice()">⏸ Halt Device</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reassign Device -->
+<div class="modal-overlay" id="modal-reassign-device">
+  <div class="modal">
+    <h3>👤 Reassign Device</h3>
+    <div class="modal-sub">
+      Change which staff member is shown as the current user on this device.<br>
+      <span style="font-family:monospace;font-size:12px;color:var(--muted)" id="reassign-device-id">—</span>
+    </div>
+    <label>Assign To</label>
+    <select id="reassign-user-select">
+      <option value="">Loading…</option>
+    </select>
+    <p style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5">
+      ℹ️ This updates the tracking record only. The staff member will use their own username and password to log in as normal.
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-reassign-device')">Cancel</button>
+      <button class="btn btn-primary" onclick="doReassignDevice()">Reassign</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reset Password from Device Row -->
+<div class="modal-overlay" id="modal-device-pw">
+  <div class="modal">
+    <h3>🔑 Reset Password</h3>
+    <div class="modal-sub">
+      Resetting password for: <b id="dpw-username-label">—</b><br>
+      <span style="font-family:monospace;font-size:11px;color:var(--muted)">Device: <span id="dpw-device-label">—</span></span>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5">
+      The staff member will need to use this new password the next time they log in on their device. The app will save it automatically after the first successful login.
+    </p>
+    <label>New Password (min 4 characters)</label>
+    <input type="password" id="dpw-new" autocomplete="new-password" placeholder="Enter new password">
+    <label style="margin-top:12px">Confirm New Password</label>
+    <input type="password" id="dpw-confirm" autocomplete="new-password" placeholder="Re-enter new password">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-device-pw')">Cancel</button>
+      <button class="btn btn-primary" onclick="doDeviceResetPw()">🔑 Set Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Department -->
+<div class="modal-overlay" id="modal-add-dept">
+  <div class="modal">
+    <h3>Add Department</h3>
+    <div class="modal-sub">Enter a name for the new department.</div>
+    <label>Department Name</label>
+    <input type="text" id="add-dept-name" placeholder="e.g. Field Operations" autocomplete="off">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-dept')">Cancel</button>
+      <button class="btn btn-primary" onclick="doAddDept()">Add Department</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rename Department -->
+<div class="modal-overlay" id="modal-rename-dept">
+  <div class="modal">
+    <h3>Rename Department</h3>
+    <div class="modal-sub">All staff currently assigned to <b id="rename-dept-old-label">—</b> will be updated automatically.</div>
+    <label>New Name</label>
+    <input type="text" id="rename-dept-new" placeholder="New department name" autocomplete="off">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-rename-dept')">Cancel</button>
+      <button class="btn btn-primary" onclick="doRenameDept()">Rename</button>
+    </div>
+  </div>
+</div>
+
+<!-- Form Builder -->
+<div class="modal-overlay" id="modal-form-builder">
+  <div class="modal" style="width:640px">
+    <h3 id="form-builder-title">New Form</h3>
+    <div class="modal-sub">
+      Build a form template and assign it to your staff.
+      Staff will automatically receive it when they log in to the app.
+    </div>
+
+    <label>Form Name <span style="color:var(--red)">*</span></label>
+    <input type="text" id="fb-name" placeholder="e.g. Daily Field Report" maxlength="100">
+
+    <label>Description (optional)</label>
+    <input type="text" id="fb-desc" placeholder="Short description of this form" maxlength="200">
+
+    <label style="margin-top:16px">Assign To</label>
+    <div class="assigned-to-wrap">
+      <select id="assigned-to-mode" onchange="toggleAssignMode()">
+        <option value="ALL">All Devices (Everyone)</option>
+        <option value="SPECIFIC">Specific Devices / Users</option>
+      </select>
+      <input type="text" id="assigned-device-input"
+        placeholder="e.g. device123, john.doe  (comma-separated)"
+        style="display:none">
+    </div>
+    <div class="form-hint" id="assign-hint">This form will be sent to all devices in your organisation.</div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px;margin-bottom:10px">
+      <label style="margin:0;font-size:13px;font-weight:600;color:var(--text)">Form Fields</label>
+      <button class="btn btn-ghost btn-sm" onclick="addField()">+ Add Field</button>
+    </div>
+
+    <div id="fields-builder-list"></div>
+    <div id="fb-no-fields" style="text-align:center;padding:20px;color:var(--muted);font-size:12px;border:1px dashed var(--border);border-radius:8px;margin-bottom:12px">
+      No fields yet. Click <b>+ Add Field</b> to start building your form.
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-form-builder')">Cancel</button>
+      <button class="btn btn-primary" onclick="doPublishForm()">💾 Publish Form</button>
+    </div>
+  </div>
+</div>
+
+<!-- Archive Form -->
+<div class="modal-overlay" id="modal-archive-form">
+  <div class="modal">
+    <h3>Archive Form</h3>
+    <div class="modal-sub">
+      This will remove <b id="archive-form-name">—</b> from all devices.
+      Staff will no longer see it in the app. This cannot be undone.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-archive-form')">Cancel</button>
+      <button class="btn btn-danger" onclick="doArchiveForm()">Archive</button>
+    </div>
+  </div>
+</div>
+
+<!-- Generate QR Code -->
+<div class="modal-overlay" id="modal-generate-qr">
+  <div class="modal" style="max-width:380px">
+    <h3>🔲 Staff QR Code</h3>
+    <div class="modal-sub">
+      Share this QR with your staff member. They scan it in the app to set up their device instantly — no typing needed.
+    </div>
+    <div class="qr-user-label">👤 <span id="qr-username-label">—</span></div>
+    <div class="qr-org-label">🏢 <span id="qr-org-label">—</span></div>
+    <div id="qr-canvas-wrap"><div id="qr-code-div"></div></div>
+    <div class="qr-note">
+      ⚠️ <b>Password is NOT included.</b> The staff member must type their own password when they scan this code.
+      Print it, screenshot it, or send via WhatsApp.
+    </div>
+    <button class="btn-download-qr" onclick="downloadQr()">⬇️ Download QR as Image</button>
+    <div class="modal-actions" style="margin-top:10px">
+      <button class="btn btn-ghost" onclick="closeModal('modal-generate-qr')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ═══════ JAVASCRIPT ═══════ -->
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwVtUduUnp0-15kqTSSNhcZ9BqsI805E5GFpTvNREAJST8hgcL_WDi5NfW2pA8rk9E/exec";
+
+let _org = "", _orgPw = "", _orgData = {};
+let _deptCache = []; // FIX: cached dept list so modals open instantly
+let _editTarget = "", _blockTarget = "", _removeTarget = "", _removeDeviceId = "";
+let _haltDeviceId = "", _reassignDeviceId = "", _devicePwId = "", _devicePwUser = "";
+let _renameDeptOld = "";
+let _editFormId = null;
+let _archiveFormId = "", _archiveFormName = "";
+let _formFields = [];
+let _cbIdx = 0;
+
+// ── JSONP ──────────────────────────────────────────────────────────
+function gasCall(params, cb) {
+  const id = "cb_" + Date.now() + "_" + (++_cbIdx);
+  window[id] = function(data) {
+    delete window[id];
+    const s = document.getElementById(id);
+    if (s) s.remove();
+    cb(data);
+  };
+  const qs = Object.entries(params).map(([k,v]) => k + "=" + encodeURIComponent(v)).join("&");
+  const s  = document.createElement("script");
+  s.id  = id;
+  s.src = GAS_URL + "?" + qs + "&callback=" + id;
+  s.onerror = () => { delete window[id]; s.remove(); cb({ error: true, message: "Network error" }); };
+  document.body.appendChild(s);
+}
+
+function clientCall(action, extra, cb) {
+  gasCall(Object.assign({ action, org: _org, orgpassword: _orgPw }, extra), cb);
+}
+
+// ── SIGN IN / OUT ──────────────────────────────────────────────────
+function signIn() {
+  const org = document.getElementById("login-org").value.trim().toLowerCase();
+  const pw  = document.getElementById("login-pw").value.trim();
+  if (!org || !pw) { document.getElementById("login-err").textContent = "Enter organisation name and password"; return; }
+  document.getElementById("login-err").textContent = "";
+  gasCall({ action: "clientlogin", org, orgpassword: pw }, function(d) {
+    if (d.error) { document.getElementById("login-err").textContent = "❌ " + d.message; return; }
+    _org = org; _orgPw = pw; _orgData = d;
+    document.getElementById("login-overlay").style.display = "none";
+    document.getElementById("app").style.display = "flex";
+    populateOrgDetails(d);
+    loadUsers();
+    refreshDeptCache(); // FIX: pre-load dept cache so edit/add user modals are instant
+    startDeviceAutoRefresh();
+  });
+}
+
+const DEVICE_REFRESH_MS = 6 * 60 * 60 * 1000;
+let _deviceRefreshTimer = null;
+
+function startDeviceAutoRefresh() {
+  stopDeviceAutoRefresh();
+  _deviceRefreshTimer = setInterval(function() {
+    clientCall("clientlistdevices", {}, function(d) {
+      if (!d.error) {
+        const devTab = document.getElementById("tab-devices");
+        if (devTab && devTab.classList.contains("active"))
+          renderDevices(d.devices || [], d.deviceCount || 0, d.maxDevices || 10);
+      }
+    });
+  }, DEVICE_REFRESH_MS);
+}
+function stopDeviceAutoRefresh() {
+  if (_deviceRefreshTimer) { clearInterval(_deviceRefreshTimer); _deviceRefreshTimer = null; }
+}
+
+function signOut() {
+  stopDeviceAutoRefresh();
+  _org = ""; _orgPw = ""; _orgData = {};
+  document.getElementById("login-org").value = "";
+  document.getElementById("login-pw").value  = "";
+  document.getElementById("login-err").textContent = "";
+  document.getElementById("login-overlay").style.display = "flex";
+  document.getElementById("app").style.display = "none";
+}
+
+// ── ORG DETAILS ────────────────────────────────────────────────────
+function populateOrgDetails(d) {
+  const status = (d.status || "").toUpperCase();
+  const days   = d.daysRemaining || 0;
+  const daysColor = days <= 0 ? "color:var(--red)" : days <= 30 ? "color:var(--yellow)" : "color:var(--green)";
+  setText("header-orgname", d.org || _org);
+  setText("banner-orgname", d.org || _org);
+  setText("banner-meta", (d.licenseType || "—") + " · Expires " + (d.expiryDate || "—"));
+  const badgeEl = document.getElementById("banner-badge");
+  badgeEl.textContent = status;
+  badgeEl.className = "licence-badge " + (status === "ACTIVE" ? "lic-active" : status === "EXPIRED" ? "lic-expired" : "lic-revoked");
+  setText("det-org",    d.org || "—");
+  setText("det-orgid",  d.orgId || "—");
+  setText("det-type",   d.licenseType || "—");
+  setText("det-expiry", d.expiryDate || "—");
+  document.getElementById("det-days").textContent  = days;
+  document.getElementById("det-days").style.cssText = daysColor;
+  setText("det-status", status);
+  document.getElementById("email-input").value = d.email || "";
+}
+
+function updateEmail() {
+  const email = document.getElementById("email-input").value.trim();
+  if (!email) { toast("Enter an email address", "error"); return; }
+  clientCall("clientupdateemail", { email }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Email updated ✓", "success");
+  });
+}
+
+function changePassword() {
+  const cur  = document.getElementById("cp-current").value.trim();
+  const nw   = document.getElementById("cp-new").value.trim();
+  const conf = document.getElementById("cp-confirm").value.trim();
+  if (!cur || !nw || !conf) { toast("All fields required", "error"); return; }
+  if (nw !== conf) { toast("New passwords do not match", "error"); return; }
+  if (nw.length < 4) { toast("New password min 4 characters", "error"); return; }
+  clientCall("clientchangepassword", { newpassword: nw }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    _orgPw = nw;
+    toast("Password updated ✓", "success");
+    document.getElementById("cp-current").value = "";
+    document.getElementById("cp-new").value     = "";
+    document.getElementById("cp-confirm").value = "";
+  });
+}
+
+// ── USERS ──────────────────────────────────────────────────────────
+function loadUsers() {
+  setTableLoading("users-body", 5);
+  clientCall("clientlistusers", {}, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    renderUsers(d.users || []);
+  });
+}
+
+function renderUsers(users) {
+  const tb = document.getElementById("users-body");
+  if (!users.length) {
+    tb.innerHTML = '<tr class="loading-row"><td colspan="6">No users found. Add your first staff member.</td></tr>';
+    return;
+  }
+  tb.innerHTML = users.map(u => {
+    const blocked = (u.status || "").toUpperCase() === "BLOCKED";
+    const dept    = u.department || "";
+    const role    = u.role || "STAFF";
+    return `<tr>
+      <td><b>${esc(u.username)}</b></td>
+      <td style="font-size:12px;color:var(--muted)">${esc(u.password || "—")}</td>
+      <td><span style="font-size:11px;color:var(--purple)">${esc(role)}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${esc(dept||"—")}</td>
+      <td>${blocked ? '<span class="badge badge-blocked">BLOCKED</span>' : '<span class="badge badge-active">ACTIVE</span>'}</td>
+      <td>
+        <div class="action-btns">
+          <button class="btn btn-sm btn-ghost"   onclick="openEditUser('${esc(u.username)}','${esc(role)}','${esc(dept)}')">✏️ Edit</button>
+          ${blocked
+            ? `<button class="btn btn-sm btn-ok"   onclick="doUnblockUser('${esc(u.username)}')">Unblock</button>`
+            : `<button class="btn btn-sm btn-warn" onclick="openBlockUser('${esc(u.username)}')">Block</button>`}
+          <button class="btn btn-sm btn-ghost"   onclick="openGenerateQr('${esc(u.username)}')">🔲 QR</button>
+          <button class="btn btn-sm btn-danger" onclick="openRemoveUser('${esc(u.username)}')">Remove</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+// FIX: populate a <select> with departments.
+// Uses _deptCache so options appear INSTANTLY when any modal opens —
+// eliminates the race condition where the async GAS call returned after
+// the user had already looked at the (still empty) dropdown.
+// The cache is populated on login and refreshed after any dept change.
+function loadDeptsIntoSelect(selectId, currentDept) {
+  const sel = document.getElementById(selectId);
+
+  function populateFromList(depts) {
+    sel.innerHTML = '<option value="">— None —</option>';
+    depts.forEach(function(dept) {
+      const opt = document.createElement("option");
+      opt.value = dept.name; opt.textContent = dept.name;
+      if (dept.name === currentDept) opt.selected = true;
+      sel.appendChild(opt);
+    });
+  }
+
+  // If cache is warm, populate immediately (no async wait)
+  if (_deptCache.length > 0) {
+    populateFromList(_deptCache);
+    return;
+  }
+
+  // Cache is cold (first open or after sign-in) — fetch and populate
+  sel.innerHTML = '<option value="">Loading…</option>';
+  clientCall("clientlistdepartments", {}, function(d) {
+    if (d.error) { sel.innerHTML = '<option value="">— None —</option>'; return; }
+    _deptCache = d.departments || [];
+    populateFromList(_deptCache);
+  });
+}
+
+// Refresh the department cache (called after any dept add/rename/remove,
+// and once on sign-in so modals are always ready)
+function refreshDeptCache() {
+  clientCall("clientlistdepartments", {}, function(d) {
+    if (!d.error) _deptCache = d.departments || [];
+  });
+}
+
+function openAddUser() {
+  document.getElementById("au-username").value = "";
+  document.getElementById("au-password").value = "";
+  document.getElementById("au-role").value = "STAFF";
+  loadDeptsIntoSelect("au-dept", "");
+  openModal("modal-add-user");
+}
+function doAddUser() {
+  const user = document.getElementById("au-username").value.trim().toLowerCase();
+  const pw   = document.getElementById("au-password").value.trim();
+  const role = document.getElementById("au-role").value;
+  const dept = document.getElementById("au-dept").value;
+  if (!user || !pw) { toast("Username and password required", "error"); return; }
+  if (pw.length < 4) { toast("Password min 4 chars", "error"); return; }
+  clientCall("clientadduserdetailed", { username: user, password: pw, role: role, department: dept }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("User added ✓", "success");
+    closeModal("modal-add-user"); loadUsers();
+  });
+}
+
+function openEditUser(username, currentRole, currentDept) {
+  _editTarget = username;
+  document.getElementById("eu-name-label").textContent = username;
+  document.getElementById("eu-password").value = "";
+  document.getElementById("eu-role").value = currentRole || "STAFF";
+  loadDeptsIntoSelect("eu-dept", currentDept || "");
+  openModal("modal-edit-user");
+}
+function doEditUser() {
+  const pw   = document.getElementById("eu-password").value.trim();
+  const role = document.getElementById("eu-role").value;
+  const dept = document.getElementById("eu-dept").value;
+  // Password is optional in edit — only validate if user typed something
+  if (pw && pw.length < 4) { toast("Password min 4 chars", "error"); return; }
+  clientCall("clientedituser", { username: _editTarget, password: pw, role: role, department: dept }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("User updated ✓", "success");
+    closeModal("modal-edit-user"); loadUsers();
+  });
+}
+
+function openBlockUser(username) {
+  _blockTarget = username;
+  document.getElementById("block-name-label").textContent = username;
+  document.getElementById("block-reason").value = "";
+  openModal("modal-block-user");
+}
+function doBlockUser() {
+  const notes = document.getElementById("block-reason").value.trim();
+  clientCall("clientblockuser", { username: _blockTarget, notes }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("User blocked", "info");
+    closeModal("modal-block-user"); loadUsers();
+  });
+}
+function doUnblockUser(username) {
+  clientCall("clientunblockuser", { username }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("User unblocked ✓", "success"); loadUsers();
+  });
+}
+function openRemoveUser(username) {
+  _removeTarget = username;
+  document.getElementById("remove-name-label").textContent = username;
+  openModal("modal-remove-user");
+}
+function doRemoveUser() {
+  clientCall("clientdeleteuser", { username: _removeTarget }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("User removed", "info");
+    closeModal("modal-remove-user"); loadUsers();
+  });
+}
+
+// ── DEVICES ────────────────────────────────────────────────────────
+function deviceHealth(dv) {
+  let score = 0;
+  const st = (dv.status || "").toUpperCase();
+  if      (st === "ACTIVE") score += 40;
+  else if (st === "TRIAL")  score += 28;
+  if (dv.lastActive) {
+    const d = (Date.now() - new Date(dv.lastActive).getTime()) / 86400000;
+    if      (d <= 7)  score += 40;
+    else if (d <= 14) score += 28;
+    else if (d <= 30) score += 14;
+  }
+  if (dv.currentUser && dv.currentUser.trim()) score += 20;
+  let grade, cls, barColor;
+  if      (score >= 90) { grade = "A"; cls = "health-a"; barColor = "#10b981"; }
+  else if (score >= 70) { grade = "B"; cls = "health-b"; barColor = "#34d399"; }
+  else if (score >= 50) { grade = "C"; cls = "health-c"; barColor = "#f59e0b"; }
+  else if (score >= 30) { grade = "D"; cls = "health-d"; barColor = "#f97316"; }
+  else                  { grade = "F"; cls = "health-f"; barColor = "#ef4444"; }
+  return { score, grade, cls, barColor };
+}
+
+function loadDevices() {
+  setTableLoading("devices-body", 7);
+  document.getElementById("device-summary").style.display = "none";
+  document.getElementById("halted-info").style.display = "none";
+  clientCall("clientlistdevices", {}, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    renderDevices(d.devices || [], d.deviceCount || 0, d.maxDevices || 10);
+  });
+}
+
+function renderDevices(devices, count, max) {
+  const tb = document.getElementById("devices-body");
+  let activeCount = 0, haltedCount = 0, trialCount = 0, offlineCount = 0;
+  devices.forEach(dv => {
+    const s = (dv.status || "").toUpperCase();
+    if      (s === "ACTIVE")  activeCount++;
+    else if (s === "HALTED")  haltedCount++;
+    else if (s === "TRIAL" || s === "TRIAL_EXPIRED") trialCount++;
+    if (dv.isOffline) offlineCount++;
+  });
+  document.getElementById("device-summary").style.display = "flex";
+  setText("dv-stat-total",   count + " / " + max);
+  setText("dv-stat-active",  activeCount);
+  setText("dv-stat-halted",  haltedCount);
+  setText("dv-stat-trial",   trialCount);
+  setText("dv-stat-offline", offlineCount);
+  const offlineCard = document.querySelector(".dv-offline");
+  if (offlineCard) offlineCard.style.borderColor = offlineCount > 0 ? "var(--red)" : "var(--border)";
+  if (haltedCount > 0) document.getElementById("halted-info").style.display = "block";
+  const offlineInfo = document.getElementById("offline-info");
+  if (offlineInfo) {
+    offlineInfo.style.display = offlineCount > 0 ? "block" : "none";
+    offlineInfo.textContent = `⚠️ ${offlineCount} device${offlineCount > 1 ? "s have" : " has"} been silent for 30+ days. Please check with those staff members.`;
+  }
+  if (!devices.length) {
+    tb.innerHTML = '<tr class="loading-row"><td colspan="7">No devices registered yet</td></tr>'; return;
+  }
+  tb.innerHTML = devices.map(dv => {
+    const st = (dv.status || "ACTIVE").toUpperCase();
+    let badge = "";
+    if      (st === "ACTIVE")        badge = '<span class="badge badge-active">ACTIVE</span>';
+    else if (st === "HALTED")        badge = '<span class="badge badge-halted">HALTED</span>';
+    else if (st === "TRIAL")         badge = '<span class="badge badge-trial">TRIAL</span>';
+    else if (st === "TRIAL_EXPIRED") badge = '<span class="badge badge-trial-expired">TRIAL EXPIRED</span>';
+    const lastActive = dv.lastActive   ? fmtDate(dv.lastActive)   : "—";
+    const regAt      = dv.registeredAt ? fmtDate(dv.registeredAt) : "—";
+    const h = deviceHealth(dv);
+    let offlineBadge = "", daysSilentHtml = "";
+    if (dv.isOffline) {
+      offlineBadge = '<span class="badge badge-offline">● OFFLINE</span>';
+      if (dv.lastActive) {
+        const days = Math.floor((Date.now() - new Date(dv.lastActive).getTime()) / 86400000);
+        daysSilentHtml = `<span class="days-silent">⚠ ${days} days silent</span>`;
+      }
+    }
+    return `<tr class="${dv.isOffline ? "row-offline" : ""}">
+      <td style="font-family:monospace;font-size:12px;color:var(--muted);word-break:break-all;max-width:180px">${esc(dv.deviceId)}</td>
+      <td style="font-size:13px">${esc(dv.currentUser || "—")}</td>
+      <td>${badge} ${offlineBadge}</td>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap">${regAt}</td>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap">${lastActive}${daysSilentHtml}</td>
+      <td>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+          <span class="health-score ${h.cls}" title="Score: ${h.score}/100">${h.grade}</span>
+          <div class="health-bar-wrap"><div class="health-bar" style="width:${h.score}%;background:${h.barColor}"></div></div>
+        </div>
+      </td>
+      <td>
+        <div class="action-btns">
+          ${st === "HALTED"
+            ? `<button class="btn btn-sm btn-ok"   onclick="doUnhaltDevice('${esc(dv.deviceId)}')">▶ Restore</button>`
+            : `<button class="btn btn-sm btn-warn" onclick="openHaltDevice('${esc(dv.deviceId)}')">⏸ Halt</button>`
+          }
+          <button class="btn btn-sm btn-ghost" onclick="openReassignDevice('${esc(dv.deviceId)}','${esc(dv.currentUser||'')}')">👤 Reassign</button>
+          <button class="btn btn-sm btn-ghost" onclick="openDeviceResetPw('${esc(dv.deviceId)}','${esc(dv.currentUser||'')}')">🔑 Password</button>
+          <button class="btn btn-sm btn-danger" onclick="openRemoveDevice('${esc(dv.deviceId)}')">Remove</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+function openRemoveDevice(deviceId) {
+  _removeDeviceId = deviceId;
+  document.getElementById("remove-device-id").textContent = deviceId;
+  openModal("modal-remove-device");
+}
+function doRemoveDevice() {
+  clientCall("clientremovedevice", { deviceid: _removeDeviceId }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Device removed ✓", "success");
+    closeModal("modal-remove-device"); loadDevices();
+  });
+}
+
+// ── HALT / RESTORE ─────────────────────────────────────────────────
+function openHaltDevice(deviceId) {
+  _haltDeviceId = deviceId;
+  document.getElementById("halt-device-id").textContent = deviceId;
+  openModal("modal-halt-device");
+}
+function doHaltDevice() {
+  clientCall("clienthaltdevice", { deviceid: _haltDeviceId }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Device halted — staff cannot log in until restored", "info");
+    closeModal("modal-halt-device"); loadDevices();
+  });
+}
+function doUnhaltDevice(deviceId) {
+  clientCall("clientunhaltdevice", { deviceid: deviceId }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Device restored ✓ — staff can log in again", "success");
+    loadDevices();
+  });
+}
+
+// ── REASSIGN DEVICE ────────────────────────────────────────────────
+function openReassignDevice(deviceId, currentUser) {
+  _reassignDeviceId = deviceId;
+  document.getElementById("reassign-device-id").textContent = deviceId;
+  const sel = document.getElementById("reassign-user-select");
+  sel.innerHTML = '<option value="">Loading users…</option>';
+  clientCall("clientlistusers", {}, function(d) {
+    if (d.error) { sel.innerHTML = '<option value="">Failed to load users</option>'; return; }
+    const users = d.users || [];
+    sel.innerHTML = users.map(u =>
+      `<option value="${esc(u.username)}" ${u.username === currentUser ? "selected" : ""}>${esc(u.username)} (${esc(u.role||"STAFF")})</option>`
+    ).join("");
+    if (!users.length) sel.innerHTML = '<option value="">No users found</option>';
+  });
+  openModal("modal-reassign-device");
+}
+function doReassignDevice() {
+  const newUser = document.getElementById("reassign-user-select").value;
+  if (!newUser) { toast("Select a user to assign", "error"); return; }
+  clientCall("clientreassigndevice", { deviceid: _reassignDeviceId, newuser: newUser }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Device reassigned to " + newUser + " ✓", "success");
+    closeModal("modal-reassign-device"); loadDevices();
+  });
+}
+
+// ── RESET PASSWORD FROM DEVICE ROW ────────────────────────────────
+// Changes the password of whoever is currently assigned to the device.
+// Uses the same clientedituser GAS action as the Users tab Edit button.
+function openDeviceResetPw(deviceId, currentUser) {
+  if (!currentUser || !currentUser.trim()) {
+    toast("No user assigned to this device. Use Reassign first.", "error"); return;
+  }
+  _devicePwId   = deviceId;
+  _devicePwUser = currentUser;
+  document.getElementById("dpw-username-label").textContent = currentUser;
+  document.getElementById("dpw-device-label").textContent   = deviceId;
+  document.getElementById("dpw-new").value     = "";
+  document.getElementById("dpw-confirm").value = "";
+  openModal("modal-device-pw");
+}
+function doDeviceResetPw() {
+  const nw   = document.getElementById("dpw-new").value.trim();
+  const conf = document.getElementById("dpw-confirm").value.trim();
+  if (!nw)         { toast("Enter a new password", "error"); return; }
+  if (nw.length < 4) { toast("Password must be at least 4 characters", "error"); return; }
+  if (nw !== conf) { toast("Passwords do not match", "error"); return; }
+  clientCall("clientedituser", { username: _devicePwUser, password: nw, role: "", department: "" }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Password for " + _devicePwUser + " updated ✓  — they will need to use it on next login", "success");
+    closeModal("modal-device-pw");
+  });
+}
+
+// ── DEPARTMENTS ────────────────────────────────────────────────────
+let _allUsersForDepts = [];  // cache users for dept display
+
+function loadDepts() {
+  document.getElementById("depts-list").innerHTML = '<div class="empty-state"><span class="spin"></span>Loading…</div>';
+  document.getElementById("dept-count-bar").style.display = "none";
+  // Load both depts and users so we can show who is in each dept
+  clientCall("clientlistdepartments", {}, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    const depts = d.departments || [];
+    clientCall("clientlistusers", {}, function(ud) {
+      _allUsersForDepts = ud.error ? [] : (ud.users || []);
+      renderDepts(depts);
+    });
+  });
+}
+
+function renderDepts(depts) {
+  const el = document.getElementById("depts-list");
+  document.getElementById("dept-count-bar").style.display = "block";
+  setText("dept-count-val", depts.length);
+  if (!depts.length) {
+    el.innerHTML = '<div class="empty-state">No departments yet. Add your first department above.</div>'; return;
+  }
+  el.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">' +
+    depts.map(d => {
+      // Count and list users in this dept
+      const members = _allUsersForDepts.filter(u =>
+        (u.department||"").toLowerCase().trim() === d.name.toLowerCase().trim()
+      );
+      const memberHtml = members.length
+        ? members.map(u => `<span style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:2px 8px;font-size:11px;margin:2px 2px 0 0;display:inline-block">${esc(u.username)}</span>`).join("")
+        : `<span style="color:var(--muted);font-size:11px">No staff assigned yet</span>`;
+      return `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:20px">🏬</span>
+            <div>
+              <div style="font-size:14px;font-weight:600">${esc(d.name)}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">Created ${d.createdAt ? fmtDate(d.createdAt) : "—"} &nbsp;·&nbsp; <span style="color:var(--blue)">${members.length} staff</span></div>
+            </div>
+          </div>
+          <div class="action-btns">
+            <button class="btn btn-sm btn-ghost"  onclick="openRenameDept('${esc(d.name)}')">✏️ Rename</button>
+            <button class="btn btn-sm btn-danger" onclick="doDeleteDept('${esc(d.name)}')">Remove</button>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Staff in this department</div>
+          <div>${memberHtml}</div>
+        </div>
+      </div>`;
+    }).join("") + '</div>';
+}
+
+function openAddDept() {
+  document.getElementById("add-dept-name").value = "";
+  openModal("modal-add-dept");
+}
+function doAddDept() {
+  const name = document.getElementById("add-dept-name").value.trim();
+  if (!name) { toast("Enter a department name", "error"); return; }
+  clientCall("clientadddepartment", { deptname: name }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Department added ✓", "success");
+    closeModal("modal-add-dept"); loadDepts(); refreshDeptCache();
+  });
+}
+function openRenameDept(oldName) {
+  _renameDeptOld = oldName;
+  document.getElementById("rename-dept-old-label").textContent = oldName;
+  document.getElementById("rename-dept-new").value = oldName;
+  openModal("modal-rename-dept");
+}
+function doRenameDept() {
+  const newName = document.getElementById("rename-dept-new").value.trim();
+  if (!newName) { toast("Enter a new name", "error"); return; }
+  if (newName.toLowerCase() === _renameDeptOld.toLowerCase()) { toast("New name is the same as old name", "error"); return; }
+  clientCall("clientrenamedepartment", { oldname: _renameDeptOld, newname: newName }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Renamed ✓" + (d.usersUpdated > 0 ? " · " + d.usersUpdated + " staff updated" : ""), "success");
+    closeModal("modal-rename-dept"); loadDepts(); refreshDeptCache();
+  });
+}
+function doDeleteDept(name) {
+  if (!confirm("Remove department: " + name + "?\n\nStaff assigned to it will NOT be deleted — their department field will become blank.")) return;
+  clientCall("clientdeletedepartment", { deptname: name }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Department removed", "info"); loadDepts(); refreshDeptCache();
+  });
+}
+
+// ── BROADCAST ──────────────────────────────────────────────────────
+function sendClientBroadcast() {
+  const title = document.getElementById("cbc-title").value.trim();
+  const body  = document.getElementById("cbc-body").value.trim();
+  if (!title) { toast("Enter a title", "error"); return; }
+  if (!body)  { toast("Enter a message", "error"); return; }
+  document.getElementById("cbc-result").style.display = "none";
+  toast("Sending…", "info");
+  clientCall("clientbroadcast", { title, body }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    document.getElementById("cbc-result-body").innerHTML =
+      `<span style="color:var(--green)">✅ Sent: <b>${d.sent}</b></span><br>` +
+      (d.failed  > 0 ? `<span style="color:var(--red)">❌ Failed: <b>${d.failed}</b></span><br>` : "") +
+      (d.noToken > 0 ? `<span style="color:var(--yellow)">⚠️ No token (app not yet opened): <b>${d.noToken}</b></span><br>` : "") +
+      `<br><span style="color:var(--muted)">Title: "${esc(title)}"</span>`;
+    document.getElementById("cbc-result").style.display = "block";
+    toast("Broadcast sent ✓", "success");
+  });
+}
+
+// ── SUBMISSIONS ────────────────────────────────────────────────────
+let _allSubmissions   = [];   // full cache from GAS
+let _shownSubmissions = [];   // after filters applied
+
+function loadSubmissions() {
+  setTableLoading("submissions-body", 9);
+  document.getElementById("sub-count-bar").style.display = "none";
+  clientCall("clientlistsubmissions", {}, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    _allSubmissions = d.submissions || [];
+    populateSubFilters(_allSubmissions);
+    applySubFilters();
+  });
+}
+
+// Build staff + form dropdowns from actual data
+function populateSubFilters(subs) {
+  const staffSel = document.getElementById("filter-staff");
+  const formSel  = document.getElementById("filter-form");
+  const curStaff = staffSel.value;
+  const curForm  = formSel.value;
+
+  const staffSet = [...new Set(subs.map(s => s.submitted_by || s.submittedBy || "").filter(Boolean))].sort();
+  const formSet  = [...new Set(subs.map(s => s.form_name || s.template_name || s.templateId || "").filter(Boolean))].sort();
+
+  staffSel.innerHTML = '<option value="">All Staff</option>' +
+    staffSet.map(n => `<option value="${esc(n)}" ${n === curStaff ? "selected":""}>${esc(n)}</option>`).join("");
+  formSel.innerHTML  = '<option value="">All Forms</option>' +
+    formSet.map(n  => `<option value="${esc(n)}" ${n === curForm  ? "selected":""}>${esc(n)}</option>`).join("");
+}
+
+function applySubFilters() {
+  const staff   = document.getElementById("filter-staff").value;
+  const form    = document.getElementById("filter-form").value;
+  const fromVal = document.getElementById("filter-from").value;
+  const toVal   = document.getElementById("filter-to").value;
+  const fromMs  = fromVal ? new Date(fromVal).getTime() : 0;
+  const toMs    = toVal   ? new Date(toVal + "T23:59:59").getTime() : Infinity;
+
+  _shownSubmissions = _allSubmissions.filter(function(s) {
+    const byStaff = !staff || (s.submitted_by || s.submittedBy || "") === staff;
+    const byForm  = !form  || (s.form_name || s.template_name || s.templateId || "") === form;
+    const ts      = s.submitted_at ? new Date(s.submitted_at).getTime() : 0;
+    const byDate  = ts >= fromMs && ts <= toMs;
+    return byStaff && byForm && byDate;
+  });
+
+  renderSubmissions(_shownSubmissions);
+
+  // Update count bar
+  const countBar  = document.getElementById("sub-count-bar");
+  const countVal  = document.getElementById("sub-count-val");
+  const filterNote = document.getElementById("sub-filter-note");
+  countBar.style.display = "flex";
+  countVal.textContent   = _shownSubmissions.length;
+  const isFiltered = staff || form || fromVal || toVal;
+  filterNote.textContent = isFiltered ? "(filtered from " + _allSubmissions.length + " total)" : "";
+}
+
+function clearSubFilters() {
+  document.getElementById("filter-staff").value = "";
+  document.getElementById("filter-form").value  = "";
+  document.getElementById("filter-from").value  = "";
+  document.getElementById("filter-to").value    = "";
+  applySubFilters();
+}
+
+function renderSubmissions(subs) {
+  const tb = document.getElementById("submissions-body");
+  if (!subs.length) {
+    tb.innerHTML = '<tr class="loading-row"><td colspan="9">No submissions match your filter</td></tr>';
+    return;
+  }
+  tb.innerHTML = subs.map(function(s) {
+    const lat  = parseFloat(s.latitude)  || 0;
+    const lng  = parseFloat(s.longitude) || 0;
+    const mock = s.is_mock === "true" || s.is_mock === true || s.is_mock === "YES";
+    const hasCoords = lat !== 0 || lng !== 0;
+    const gpsStatus = mock
+      ? '<span class="badge" style="background:#450a0a;color:#ef4444">⚠️ MOCK</span>'
+      : hasCoords
+        ? '<span class="badge badge-active">✓ REAL</span>'
+        : '<span class="badge" style="background:var(--yellow-dim);color:var(--yellow)">NO GPS</span>';
+    const mapBtn = hasCoords
+      ? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" class="btn btn-sm btn-ghost">🗺 Map</a>`
+      : `<span style="color:var(--muted);font-size:12px">—</span>`;
+    const submittedAt = s.submitted_at
+      ? new Date(s.submitted_at).toLocaleString(undefined,
+          { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" })
+      : "—";
+    const formName = s.form_name || s.template_name || s.templateId || "—";
+    const subNum   = s.submission_number || s.sub_id || "—";
+    return `<tr ${mock ? 'style="background:rgba(239,68,68,0.05)"' : ''}>
+      <td style="font-family:monospace;font-size:11px;color:var(--muted)">${esc(subNum)}</td>
+      <td style="font-size:12px;font-weight:600">${esc(formName)}</td>
+      <td style="font-size:12px">${esc(s.submitted_by || s.submittedBy || "—")}</td>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap">${submittedAt}</td>
+      <td style="font-size:12px;color:var(--muted)">${esc(s.department_id || s.departmentId || "—")}</td>
+      <td style="font-family:monospace;font-size:12px">${hasCoords ? lat.toFixed(6) : "—"}</td>
+      <td style="font-family:monospace;font-size:12px">${hasCoords ? lng.toFixed(6) : "—"}</td>
+      <td>${gpsStatus}</td>
+      <td>${mapBtn}</td>
+    </tr>`;
+  }).join("");
+}
+
+// ── EXCEL EXPORT ────────────────────────────────────────────────────
+function exportToExcel() {
+  if (!_shownSubmissions.length) {
+    toast("No submissions to export. Apply a filter or refresh first.", "error");
+    return;
+  }
+
+  const btn = document.getElementById("btn-export-excel");
+  btn.disabled = true;
+  btn.textContent = "⏳ Building…";
+
+  try {
+    const wb = XLSX.utils.book_new();
+
+    // Group submissions by form name — each form = one Excel sheet
+    const byForm = {};
+    _shownSubmissions.forEach(function(s) {
+      const key = (s.form_name || s.template_name || s.templateId || "Unknown Form").trim();
+      if (!byForm[key]) byForm[key] = [];
+      byForm[key].push(s);
+    });
+
+    Object.keys(byForm).forEach(function(formName) {
+      const rows     = byForm[formName];
+      const allKeys  = new Set();
+
+      // Collect all dynamic field keys from values_json across all rows
+      rows.forEach(function(s) {
+        try {
+          const vals = JSON.parse(s.values_json || s.valuesJson || "{}");
+          Object.keys(vals).forEach(function(k) {
+            // Skip base64 images and GPS blobs — not useful in Excel
+            const v = String(vals[k] || "");
+            if (!v.startsWith("data:image") && !v.startsWith("Lat:")) {
+              allKeys.add(k);
+            }
+          });
+        } catch(e) {}
+      });
+
+      // Fixed columns always first
+      const fixedCols = [
+        "Submission #", "Form", "Submitted By", "Department",
+        "Date", "Status", "Latitude", "Longitude", "Accuracy (m)", "GPS"
+      ];
+
+      // Dynamic field columns after fixed
+      const dynamicCols = [...allKeys];
+      const allCols     = fixedCols.concat(dynamicCols);
+
+      // Build rows
+      const sheetData = [allCols];   // first row = headers
+
+      rows.forEach(function(s) {
+        const lat  = parseFloat(s.latitude)  || 0;
+        const lng  = parseFloat(s.longitude) || 0;
+        const mock = s.is_mock === "true" || s.is_mock === true || s.is_mock === "YES";
+        const gps  = mock ? "MOCK" : (lat || lng) ? "REAL" : "NO GPS";
+        const date = s.submitted_at
+          ? new Date(s.submitted_at).toLocaleString(undefined,
+              { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" })
+          : "";
+
+        // Parse dynamic field values
+        let vals = {};
+        try { vals = JSON.parse(s.values_json || s.valuesJson || "{}"); } catch(e) {}
+
+        const row = [
+          s.submission_number || s.sub_id || "",
+          formName,
+          s.submitted_by || s.submittedBy || "",
+          s.department_id || s.departmentId || "",
+          date,
+          s.status || "",
+          lat || "",
+          lng || "",
+          s.accuracy_m || s.locationAccuracy || "",
+          gps
+        ];
+
+        // Append dynamic field values in same order as headers
+        dynamicCols.forEach(function(col) {
+          const v = String(vals[col] || "");
+          // Replace base64 or GPS blob with placeholder
+          if (v.startsWith("data:image")) {
+            row.push("[Photo]");
+          } else if (v.startsWith("Lat:")) {
+            row.push("[GPS captured]");
+          } else {
+            row.push(v);
+          }
+        });
+
+        sheetData.push(row);
+      });
+
+      // Sanitise sheet name — Excel max 31 chars, no special chars
+      const sheetName = formName.replace(/[\\\/\?\*\[\]:]/g, "").substring(0, 31);
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+      // Auto-width columns
+      const colWidths = allCols.map(function(col, ci) {
+        let max = col.length;
+        sheetData.slice(1).forEach(function(row) {
+          const cell = String(row[ci] || "");
+          if (cell.length > max) max = cell.length;
+        });
+        return { wch: Math.min(max + 2, 50) };
+      });
+      ws["!cols"] = colWidths;
+
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    });
+
+    // File name includes org + date
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const orgName = (_org || "org").replace(/\s+/g, "_");
+    XLSX.writeFile(wb, `submissions_${orgName}_${dateStr}.xlsx`);
+
+    toast("✅ Excel file downloaded — " + Object.keys(byForm).length + " sheet(s)", "success");
+
+  } catch(err) {
+    toast("Export failed: " + err.message, "error");
+    console.error(err);
+  }
+
+  btn.disabled = false;
+  btn.textContent = "📥 Export Excel";
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ── FORMS ─────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+const FIELD_TYPES = [
+  "TEXT","MULTILINE_TEXT","NUMBER","PHONE","DATE","TIME",
+  "DROPDOWN","MULTI_CHOICE","TOGGLE","RATING",
+  "PHOTO","AUDIO","SIGNATURE","GPS"
+];
+// Types that need an options list
+const NEEDS_OPTIONS = ["DROPDOWN","MULTI_CHOICE"];
+
+function loadForms() {
+  document.getElementById("forms-list").innerHTML = '<div class="empty-state"><span class="spin"></span>Loading…</div>';
+  document.getElementById("forms-count-bar").style.display = "none";
+  clientCall("clientlistforms", {}, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    renderForms(d.forms || []);
+  });
+}
+
+function renderForms(forms) {
+  const el     = document.getElementById("forms-list");
+  const active = forms.filter(f => (f.status || "").toUpperCase() !== "DELETED");
+  document.getElementById("forms-count-bar").style.display = "block";
+  setText("forms-count-val", active.length);
+  if (!active.length) {
+    el.innerHTML = '<div class="empty-state">No forms yet. Click <b>+ New Form</b> to create your first form template.</div>';
+    return;
+  }
+  el.innerHTML = active.map(f => {
+    let fieldCount = 0;
+    try { fieldCount = JSON.parse(f.fields_json || "[]").length; } catch(e) {}
+    const assigned = (f.assigned_to || "ALL").toUpperCase() === "ALL"
+      ? '<span style="color:var(--green)">All Devices</span>'
+      : '<span style="color:var(--yellow)">' + esc(f.assigned_to) + '</span>';
+    return `<div class="form-card">
+      <div class="form-card-info">
+        <div class="form-card-name">📋 ${esc(f.form_name)}</div>
+        ${f.description ? `<div class="form-card-desc">${esc(f.description)}</div>` : ""}
+        <div class="form-card-meta">
+          <span>🔢 ${fieldCount} field${fieldCount !== 1 ? "s" : ""}</span>
+          <span>📡 Assigned to: ${assigned}</span>
+          <span>🕐 Updated: ${f.updated_at ? fmtDate(f.updated_at) : "—"}</span>
+        </div>
+      </div>
+      <div class="action-btns" style="flex-direction:column;align-items:flex-end">
+        <button class="btn btn-sm btn-ghost"  onclick="openFormBuilder('${esc(f.form_id)}')">✏️ Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="openArchiveForm('${esc(f.form_id)}','${esc(f.form_name)}')">🗑 Archive</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function openFormBuilder(formId) {
+  _editFormId  = formId;
+  _formFields  = [];
+  document.getElementById("fb-name").value = "";
+  document.getElementById("fb-desc").value = "";
+  document.getElementById("assigned-to-mode").value = "ALL";
+  document.getElementById("assigned-device-input").value = "";
+  document.getElementById("assigned-device-input").style.display = "none";
+  document.getElementById("assign-hint").textContent = "This form will be sent to all devices in your organisation.";
+  document.getElementById("fields-builder-list").innerHTML = "";
+  document.getElementById("fb-no-fields").style.display = "block";
+  document.getElementById("form-builder-title").textContent = formId ? "Edit Form" : "New Form";
+
+  if (formId) {
+    clientCall("clientlistforms", {}, function(d) {
+      if (d.error) { toast(d.message, "error"); return; }
+      const form = (d.forms || []).find(f => f.form_id === formId);
+      if (!form) { toast("Form not found", "error"); return; }
+      document.getElementById("fb-name").value = form.form_name || "";
+      document.getElementById("fb-desc").value = form.description || "";
+      const at = (form.assigned_to || "ALL").trim();
+      if (at.toUpperCase() === "ALL") {
+        document.getElementById("assigned-to-mode").value = "ALL";
+        document.getElementById("assigned-device-input").style.display = "none";
+      } else {
+        document.getElementById("assigned-to-mode").value = "SPECIFIC";
+        document.getElementById("assigned-device-input").style.display = "block";
+        document.getElementById("assigned-device-input").value = at;
+        document.getElementById("assign-hint").textContent = "Enter device IDs or usernames separated by commas.";
+      }
+      try { _formFields = JSON.parse(form.fields_json || "[]"); } catch(e) { _formFields = []; }
+      rebuildFieldRows();
+      openModal("modal-form-builder");
+    });
+  } else {
+    openModal("modal-form-builder");
+  }
+}
+
+function toggleAssignMode() {
+  const mode  = document.getElementById("assigned-to-mode").value;
+  const input = document.getElementById("assigned-device-input");
+  const hint  = document.getElementById("assign-hint");
+  if (mode === "SPECIFIC") {
+    input.style.display = "block";
+    hint.textContent = "Enter device IDs or usernames separated by commas.";
+  } else {
+    input.style.display = "none";
+    hint.textContent = "This form will be sent to all devices in your organisation.";
+  }
+}
+
+function addField() {
+  _formFields.push({ label: "", type: "TEXT", required: false, options: [] });
+  rebuildFieldRows();
+}
+
+function updateFieldType(i, val) {
+  _formFields[i].type = val;
+  if (!NEEDS_OPTIONS.includes(val)) _formFields[i].options = [];
+  rebuildFieldRows();
+}
+
+function updateFieldOptions(i, val) {
+  _formFields[i].options = val.split("\n").map(s => s.trim()).filter(s => s.length > 0);
+}
+
+function rebuildFieldRows() {
+  const list = document.getElementById("fields-builder-list");
+  document.getElementById("fb-no-fields").style.display = _formFields.length ? "none" : "block";
+  if (!_formFields.length) { list.innerHTML = ""; return; }
+  list.innerHTML = _formFields.map((f, i) => {
+    const opts = FIELD_TYPES.map(t =>
+      `<option value="${t}" ${f.type === t ? "selected" : ""}>${t}</option>`
+    ).join("");
+    const needsOpts = NEEDS_OPTIONS.includes(f.type);
+    const currentOptions = Array.isArray(f.options) ? f.options.join("\n") : "";
+    const optionsHtml = needsOpts ? `
+      <div style="width:100%;margin-top:8px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">
+          Options (one per line) <span style="color:var(--red)">*</span>
+        </div>
+        <textarea
+          rows="3"
+          placeholder="Option 1&#10;Option 2&#10;Option 3"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:12px;padding:6px 10px;resize:vertical"
+          oninput="updateFieldOptions(${i}, this.value)"
+        >${esc(currentOptions)}</textarea>
+      </div>` : "";
+    return `<div class="field-builder-row" id="field-row-${i}" style="flex-wrap:wrap">
+      <span style="font-size:11px;color:var(--muted);min-width:22px;text-align:right">${i+1}.</span>
+      <input class="field-label-input" type="text"
+        placeholder="Field label e.g. Beneficiary Name"
+        value="${esc(f.label)}"
+        oninput="_formFields[${i}].label=this.value" maxlength="80">
+      <select class="field-type-select" onchange="updateFieldType(${i}, this.value)">${opts}</select>
+      <label class="field-req-wrap">
+        <input type="checkbox" ${f.required ? "checked" : ""}
+          onchange="_formFields[${i}].required=this.checked"> Required
+      </label>
+      <button class="btn-remove-field" onclick="removeField(${i})" title="Remove field">✕</button>
+      ${optionsHtml}
+    </div>`;
+  }).join("");
+}
+
+function removeField(idx) {
+  _formFields.splice(idx, 1);
+  rebuildFieldRows();
+}
+
+function doPublishForm() {
+  const name = document.getElementById("fb-name").value.trim();
+  if (!name) { toast("Form name is required", "error"); return; }
+  if (!_formFields.length) { toast("Add at least one field", "error"); return; }
+  for (let i = 0; i < _formFields.length; i++) {
+    if (!_formFields[i].label.trim()) {
+      toast("Field " + (i + 1) + " is missing a label", "error"); return;
+    }
+    if (NEEDS_OPTIONS.includes(_formFields[i].type)) {
+      const opts = _formFields[i].options || [];
+      if (!opts.length) {
+        toast("Field " + (i + 1) + " (" + _formFields[i].type + ") needs at least one option", "error"); return;
+      }
+    }
+  }
+  const mode       = document.getElementById("assigned-to-mode").value;
+  const assignedTo = mode === "ALL"
+    ? "ALL"
+    : document.getElementById("assigned-device-input").value.trim() || "ALL";
+  const params = {
+    form_name:   name,
+    description: document.getElementById("fb-desc").value.trim(),
+    fields_json: JSON.stringify(_formFields),
+    assigned_to: assignedTo
+  };
+  if (_editFormId) params.form_id = _editFormId;
+  toast("Saving…", "info");
+  clientCall("clientpublishform", params, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast(d.action === "updated" ? "Form updated ✓" : "Form published ✓", "success");
+    closeModal("modal-form-builder");
+    loadForms();
+  });
+}
+
+function openArchiveForm(formId, formName) {
+  _archiveFormId   = formId;
+  _archiveFormName = formName;
+  document.getElementById("archive-form-name").textContent = formName;
+  openModal("modal-archive-form");
+}
+function doArchiveForm() {
+  clientCall("clientarchiveform", { form_id: _archiveFormId }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Form archived", "info");
+    closeModal("modal-archive-form");
+    loadForms();
+  });
+}
+
+// ── GENERATE QR CODE ──────────────────────────────────────────────
+let _qrInstance = null;
+
+function openGenerateQr(username) {
+  const orgName = _orgData.org  || _org;
+  const orgId   = _orgData.orgId || "";
+
+  document.getElementById("qr-username-label").textContent = username;
+  document.getElementById("qr-org-label").textContent      = orgName;
+
+  // Build the JSON payload the app expects
+  const payload = JSON.stringify({ org: orgName, orgId: orgId, username: username });
+
+  // Clear previous QR
+  const wrap = document.getElementById("qr-code-div");
+  wrap.innerHTML = "";
+  _qrInstance = null;
+
+  // Generate new QR using QRCode.js
+  try {
+    _qrInstance = new QRCode(wrap, {
+      text:         payload,
+      width:        220,
+      height:       220,
+      colorDark:    "#000000",
+      colorLight:   "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } catch(e) {
+    wrap.innerHTML = '<p style="color:var(--red);font-size:12px;text-align:center">QR generation failed. Please refresh and try again.</p>';
+  }
+
+  openModal("modal-generate-qr");
+}
+
+function downloadQr() {
+  const wrap = document.getElementById("qr-code-div");
+  const img  = wrap.querySelector("img");
+  const canvas = wrap.querySelector("canvas");
+  let dataUrl = "";
+
+  if (canvas) {
+    dataUrl = canvas.toDataURL("image/png");
+  } else if (img) {
+    // QRCode.js falls back to img on some browsers — draw onto a canvas to download
+    const c = document.createElement("canvas");
+    c.width = img.width || 220; c.height = img.height || 220;
+    c.getContext("2d").drawImage(img, 0, 0);
+    dataUrl = c.toDataURL("image/png");
+  }
+
+  if (!dataUrl) { toast("Could not generate download — try right-clicking the QR image instead", "error"); return; }
+
+  const username = document.getElementById("qr-username-label").textContent || "staff";
+  const a = document.createElement("a");
+  a.href     = dataUrl;
+  a.download = "QR_" + username + ".png";
+  a.click();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ── AI KEY MANAGEMENT ─────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+
+function setAiStatusBar(msg, type) {
+  const bar = document.getElementById("ai-status-bar");
+  bar.style.display = "block";
+  bar.textContent   = msg;
+  if (type === "ok") {
+    bar.style.background   = "var(--green-dim)";
+    bar.style.color        = "var(--green)";
+    bar.style.borderColor  = "var(--green)";
+  } else if (type === "error") {
+    bar.style.background   = "var(--red-dim)";
+    bar.style.color        = "var(--red)";
+    bar.style.borderColor  = "var(--red)";
+  } else {
+    bar.style.background   = "var(--blue-dim)";
+    bar.style.color        = "var(--blue)";
+    bar.style.borderColor  = "var(--blue)";
+  }
+}
+
+function toggleAiKeyVisibility() {
+  const input = document.getElementById("ai-key-input");
+  input.type  = input.type === "password" ? "text" : "password";
+}
+
+function loadAiKeyStatus() {
+  setAiStatusBar("🔄 Checking key status…", "info");
+  clientCall("clientgetaikeystatus", {}, function(d) {
+    if (d.error) {
+      setAiStatusBar("⚠️ Could not check key status: " + d.message, "error");
+      return;
+    }
+    if (d.keySet) {
+      setAiStatusBar("✅ A Gemini API key is currently saved for your organisation. AI is active.", "ok");
+    } else {
+      setAiStatusBar("⚠️ No Gemini API key saved yet. AI features are disabled for your staff.", "error");
+    }
+  });
+}
+
+function doSaveAiKey() {
+  const key = document.getElementById("ai-key-input").value.trim();
+  if (!key) { toast("Paste your Gemini API key first", "error"); return; }
+  if (key.length < 10) { toast("That key looks too short — check it and try again", "error"); return; }
+  setAiStatusBar("🔄 Saving key…", "info");
+  clientCall("clientsaveaikey", { apikey: key }, function(d) {
+    if (d.error) {
+      setAiStatusBar("❌ " + d.message, "error");
+      toast(d.message, "error");
+      return;
+    }
+    document.getElementById("ai-key-input").value = "";
+    setAiStatusBar("✅ Key saved. AI is now active for all staff in your organisation.", "ok");
+    toast("AI key saved ✓", "success");
+  });
+}
+
+function doCheckAiKeyStatus() {
+  loadAiKeyStatus();
+}
+
+function doDeleteAiKey() {
+  if (!confirm(
+    "Remove the Gemini API key for " + (_orgData.org || _org) + "?\n\n" +
+    "This will immediately disable AI features for all your staff."
+  )) return;
+  setAiStatusBar("🔄 Removing key…", "info");
+  clientCall("clientdeleteaikey", {}, function(d) {
+    if (d.error) {
+      setAiStatusBar("❌ " + d.message, "error");
+      toast(d.message, "error");
+      return;
+    }
+    setAiStatusBar("⚠️ Key removed. AI features are now disabled for your staff.", "error");
+    toast("AI key removed", "info");
+  });
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────
+function showTab(name, btn) {
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("tab-" + name).classList.add("active");
+  btn.classList.add("active");
+  if (name === "devices")     loadDevices();
+  if (name === "departments") loadDepts();
+  if (name === "submissions") loadSubmissions();
+  if (name === "aisettings")   loadAiKeyStatus();
+}
+
+function openModal(id)  { document.getElementById(id).classList.add("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+function esc(s) {
+  return String(s || "")
+    .replace(/&/g,"&amp;").replace(/"/g,"&quot;")
+    .replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function fmtDate(str) {
+  try { return new Date(str).toLocaleDateString(undefined, { day:"2-digit", month:"short", year:"numeric" }); }
+  catch(e) { return str; }
+}
+function setTableLoading(tbodyId, cols) {
+  document.getElementById(tbodyId).innerHTML =
+    `<tr class="loading-row"><td colspan="${cols}"><span class="spin"></span>Loading…</td></tr>`;
+}
+
+let _toastTimer;
+function toast(msg, type) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "show " + (type || "info");
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove("show"), 3200);
+}
+
+document.querySelectorAll(".modal-overlay").forEach(el => {
+  el.addEventListener("click", function(e) {
+    if (e.target === this) this.classList.remove("open");
+  });
+});
+
+document.getElementById("login-pw").addEventListener("keydown", e => {
+  if (e.key === "Enter") signIn();
+});
+</script>
+</body>
+</html>
