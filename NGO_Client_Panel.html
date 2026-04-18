@@ -1,0 +1,3672 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NGO Report App — Organisation Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #141720;
+    --surface2: #1c2030;
+    --border: #2a2f42;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --blue: #3b82f6;
+    --blue-dim: #1e3a5f;
+    --green: #10b981;
+    --green-dim: #064e3b;
+    --yellow: #f59e0b;
+    --yellow-dim: #451a03;
+    --red: #ef4444;
+    --red-dim: #450a0a;
+    --purple: #8b5cf6;
+    --orange: #f97316;
+    --orange-dim: #431407;
+    --sans: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+  /* ── LOGIN ── */
+  #login-overlay {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; align-items: center; justify-content: center; z-index: 1000;
+  }
+  .login-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 40px; width: 380px; max-width: 95vw;
+  }
+  .login-icon { font-size: 36px; margin-bottom: 16px; display: block; text-align: center; }
+  .login-title { font-size: 17px; font-weight: 700; text-align: center; margin-bottom: 6px; }
+  .login-sub { color: var(--muted); font-size: 12px; text-align: center; margin-bottom: 26px; line-height: 1.6; }
+  .login-label { font-size: 11px; color: var(--muted); margin-bottom: 5px; display: block; }
+  .login-input {
+    width: 100%; padding: 11px 14px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+    font-family: var(--sans); font-size: 13px; margin-bottom: 12px;
+  }
+  .login-input:focus { outline: none; border-color: var(--blue); }
+  .btn-signin {
+    width: 100%; padding: 12px; background: var(--blue); color: #fff;
+    border: none; border-radius: 8px; font-family: var(--sans);
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity .2s;
+  }
+  .btn-signin:hover { opacity: .85; }
+  .login-err { color: var(--red); font-size: 12px; margin-top: 10px; min-height: 18px; text-align: center; }
+  .login-hint { color: var(--muted); font-size: 11px; text-align: center; margin-top: 14px; }
+
+  /* ── MAIN APP ── */
+  #app { display: none; flex-direction: column; min-height: 100vh; }
+
+  .header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 24px; height: 52px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: 'Syncopate', sans-serif; font-size: 15px; color: var(--blue); font-weight: 700; }
+  .header-sub { color: var(--muted); font-size: 11px; margin-top: 2px; }
+  .btn-signout {
+    background: transparent; color: var(--muted); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 14px; font-family: var(--sans); font-size: 12px;
+    cursor: pointer; transition: all .2s;
+  }
+  .btn-signout:hover { color: var(--red); border-color: var(--red); }
+
+  .org-banner {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 14px 24px; display: flex; align-items: center; gap: 14px;
+  }
+  .org-avatar {
+    width: 40px; height: 40px; border-radius: 10px; background: var(--blue-dim);
+    border: 1px solid var(--blue); display: flex; align-items: center;
+    justify-content: center; font-size: 18px; flex-shrink: 0;
+  }
+  .org-name { font-size: 15px; font-weight: 700; }
+  .org-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .licence-badge { margin-left: auto; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .lic-active  { background: var(--green-dim); color: var(--green); }
+  .lic-expired { background: var(--yellow-dim); color: var(--yellow); }
+  .lic-revoked { background: var(--red-dim); color: var(--red); }
+
+  .tab-bar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 24px; display: flex; overflow-x: auto;
+  }
+  .tab-btn {
+    padding: 14px 20px; background: transparent; border: none; border-bottom: 2px solid transparent;
+    color: var(--muted); font-family: var(--sans); font-size: 13px; cursor: pointer;
+    transition: all .2s; margin-bottom: -1px; white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+  .content { padding: 24px; flex: 1; max-width: 1000px; width: 100%; margin: 0 auto; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px; flex-wrap: wrap; gap: 10px;
+  }
+  .section-title { font-size: 15px; font-weight: 600; }
+
+  .btn {
+    padding: 8px 16px; border-radius: 8px; border: none;
+    font-family: var(--sans); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all .2s; white-space: nowrap;
+  }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-primary:hover { opacity: .85; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--muted); }
+  .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 6px; }
+  .btn-danger { background: transparent; color: var(--red); border: 1px solid var(--red-dim); }
+  .btn-danger:hover { background: var(--red-dim); }
+  .btn-warn { background: transparent; color: var(--yellow); border: 1px solid var(--yellow-dim); }
+  .btn-warn:hover { background: var(--yellow-dim); }
+  .btn-ok { background: transparent; color: var(--green); border: 1px solid var(--green-dim); }
+  .btn-ok:hover { background: var(--green-dim); }
+
+  .table-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    background: var(--surface2); padding: 11px 14px; text-align: left;
+    font-size: 11px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .06em;
+    white-space: nowrap; border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody td { padding: 11px 14px; font-size: 13px; vertical-align: middle; }
+  .loading-row td { text-align: center; color: var(--muted); padding: 28px; }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-active        { background: var(--green-dim); color: var(--green); }
+  .badge-blocked       { background: var(--red-dim); color: var(--red); }
+  .badge-halted        { background: var(--red-dim); color: var(--red); }
+  .badge-trial         { background: #1e3a2f; color: #34d399; }
+  .badge-trial-expired { background: #2d1b00; color: #f97316; }
+  .badge-offline       { background: var(--red-dim); color: var(--red); margin-left: 6px; }
+  .row-offline { background: rgba(239,68,68,0.05) !important; }
+  .row-offline:hover  { background: rgba(239,68,68,0.10) !important; }
+  .days-silent { font-size: 11px; color: var(--red); display: block; margin-top: 2px; font-weight: 600; }
+
+  .info-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px 24px; margin-bottom: 16px;
+  }
+  .info-card h3 {
+    font-size: 13px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .06em; margin-bottom: 14px;
+  }
+  .info-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--border); gap: 12px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-label { font-size: 12px; color: var(--muted); flex-shrink: 0; }
+  .info-value { font-size: 13px; font-weight: 600; text-align: right; word-break: break-all; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .form-input {
+    width: 100%; padding: 11px 14px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+    font-family: var(--sans); font-size: 13px;
+  }
+  .form-input:focus { outline: none; border-color: var(--blue); }
+  .form-hint { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
+
+  .device-summary { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+  .device-stat {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 18px; flex: 1; min-width: 120px;
+  }
+  .device-stat-value { font-size: 22px; font-weight: 700; font-family: 'Syncopate', sans-serif; }
+  .device-stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .dv-total  .device-stat-value { color: var(--blue); }
+  .dv-active .device-stat-value { color: var(--green); }
+  .dv-halted .device-stat-value { color: var(--red); }
+  .dv-trial  .device-stat-value { color: #34d399; }
+  .dv-offline .device-stat-value { color: var(--red); }
+
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.7);
+    z-index: 500; align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 28px; width: 520px; max-width: 95vw;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .modal h3 { font-size: 15px; margin-bottom: 6px; }
+  .modal .modal-sub { color: var(--muted); font-size: 12px; margin-bottom: 18px; line-height: 1.5; }
+  .modal label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; margin-top: 14px; }
+  .modal input, .modal select, .modal textarea {
+    width: 100%; padding: 10px 12px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+    font-family: var(--sans); font-size: 13px;
+  }
+  .modal input:focus, .modal select:focus, .modal textarea:focus { outline: none; border-color: var(--blue); }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+
+  .empty-state { text-align: center; padding: 48px 24px; color: var(--muted); font-size: 13px; }
+  .spin {
+    display: inline-block; width: 14px; height: 14px;
+    border: 2px solid var(--border); border-top-color: var(--blue);
+    border-radius: 50%; animation: spin .7s linear infinite;
+    vertical-align: middle; margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 20px; font-size: 13px; max-width: 320px;
+    transform: translateY(80px); opacity: 0; transition: all .3s; pointer-events: none;
+  }
+  #toast.show { transform: translateY(0); opacity: 1; }
+  #toast.success { border-color: var(--green); color: var(--green); }
+  #toast.error   { border-color: var(--red);   color: var(--red);   }
+  #toast.info    { border-color: var(--blue);  color: var(--blue);  }
+
+  .action-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .health-score {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; border-radius: 50%;
+    font-size: 13px; font-weight: 700; border: 2px solid;
+  }
+  .health-a { color: #10b981; border-color: #10b981; background: #064e3b; }
+  .health-b { color: #34d399; border-color: #34d399; background: #022c22; }
+  .health-c { color: #f59e0b; border-color: #f59e0b; background: #451a03; }
+  .health-d { color: #f97316; border-color: #f97316; background: #431407; }
+  .health-f { color: #ef4444; border-color: #ef4444; background: #450a0a; }
+  .health-bar-wrap { width: 60px; height: 5px; background: var(--border); border-radius: 3px; margin-top: 4px; }
+  .health-bar { height: 100%; border-radius: 3px; transition: width .4s; }
+
+  /* ── FORMS ── */
+  .form-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 10px;
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  }
+  .form-card:hover { border-color: var(--blue-dim); }
+  .form-card-info { flex: 1; min-width: 0; }
+  .form-card-name { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .form-card-desc { font-size: 12px; color: var(--muted); margin-bottom: 6px; line-height: 1.5; }
+  .form-card-meta { font-size: 11px; color: var(--muted); }
+  .form-card-meta span { margin-right: 14px; }
+
+  /* ── EXCEL IMPORT ── */
+  .import-mode-row {
+    display: flex; gap: 10px; margin: 12px 0; flex-wrap: wrap;
+  }
+  .import-mode-btn {
+    flex: 1; min-width: 160px; padding: 12px 14px;
+    background: var(--surface2); border: 2px solid var(--border);
+    border-radius: 8px; color: var(--muted); font-family: var(--sans);
+    font-size: 12px; cursor: pointer; transition: all .2s; text-align: left;
+  }
+  .import-mode-btn:hover:not(:disabled) { border-color: var(--blue); color: var(--text); }
+  .import-mode-btn.selected { border-color: var(--blue); color: var(--blue); background: var(--blue-dim); }
+  .import-mode-btn:disabled { opacity: .45; cursor: not-allowed; }
+  .import-mode-btn .mode-title { font-weight: 700; font-size: 13px; display: block; margin-bottom: 3px; }
+  .import-mode-btn .mode-sub   { font-size: 11px; line-height: 1.5; display: block; }
+  .import-preview-wrap {
+    max-height: 320px; overflow-y: auto; border: 1px solid var(--border);
+    border-radius: 8px; margin-top: 12px;
+  }
+  .import-preview-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .import-preview-tbl th {
+    background: var(--surface2); padding: 8px 10px; text-align: left;
+    font-size: 10px; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .06em;
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+    position: sticky; top: 0;
+  }
+  .import-preview-tbl td {
+    padding: 8px 10px; border-bottom: 1px solid var(--border);
+    vertical-align: middle; max-width: 200px; word-break: break-word;
+  }
+  .import-preview-tbl tr:last-child td { border-bottom: none; }
+  .import-preview-tbl tr:hover td { background: var(--surface2); }
+  .type-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 10px; font-weight: 600;
+    background: var(--blue-dim); color: var(--blue);
+  }
+  .req-yes { color: var(--red); font-weight: 700; }
+  .req-no  { color: var(--muted); }
+  .import-summary {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 12px;
+    font-size: 12px; color: var(--muted); line-height: 1.6;
+  }
+  .import-summary b { color: var(--blue); }
+
+  /* ── CONDITIONAL LOGIC ── */
+  .condition-row {
+    width: 100%; margin-top: 8px; padding: 8px 10px;
+    background: var(--bg); border: 1px dashed var(--border);
+    border-radius: 6px; display: flex; align-items: center;
+    gap: 8px; flex-wrap: wrap;
+  }
+  .condition-row select,
+  .condition-row input[type=text] {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-family: var(--sans);
+    font-size: 12px; padding: 5px 8px;
+  }
+  .condition-row select:focus,
+  .condition-row input[type=text]:focus { outline: none; border-color: var(--blue); }
+  .btn-add-condition {
+    background: transparent; border: none;
+    color: var(--muted); font-size: 11px;
+    cursor: pointer; padding: 2px 0;
+    font-family: var(--sans);
+    text-decoration: underline; text-underline-offset: 2px;
+  }
+  .btn-add-condition:hover { color: var(--blue); }
+  .btn-remove-condition {
+    background: transparent; border: none;
+    color: var(--red); font-size: 11px;
+    cursor: pointer; padding: 2px 4px;
+    font-family: var(--sans); white-space: nowrap; margin-left: auto;
+  }
+  .btn-remove-condition:hover { color: #ff6b6b; }
+  .condition-label {
+    font-size: 11px; color: var(--blue);
+    white-space: nowrap; font-weight: 600;
+  }
+  .condition-eq { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+  .field-builder-row {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .field-builder-row input, .field-builder-row select {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-family: var(--sans);
+    font-size: 12px; padding: 6px 10px;
+  }
+  .field-builder-row input:focus,
+  .field-builder-row select:focus { outline: none; border-color: var(--blue); }
+  .field-label-input { flex: 1; min-width: 140px; }
+  .field-type-select { width: 140px; }
+  .field-req-wrap {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 12px; color: var(--muted); white-space: nowrap;
+  }
+  .field-req-wrap input[type=checkbox] { width: auto; padding: 0; }
+  .btn-remove-field {
+    background: transparent; border: none; color: var(--red);
+    font-size: 16px; cursor: pointer; padding: 0 4px; line-height: 1; flex-shrink: 0;
+  }
+  .btn-remove-field:hover { color: #ff6b6b; }
+  .assigned-to-wrap { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start; }
+  .assigned-to-wrap select { flex: 1; min-width: 160px; }
+  #assigned-device-input { flex: 2; min-width: 200px; }
+
+  /* ── EXPORT FILTER BAR ── */
+  .export-bar {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 16px;
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+  }
+  .export-bar-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 140px; }
+  .export-bar-group label { font-size: 11px; color: var(--muted); }
+  .export-bar-group select,
+  .export-bar-group input {
+    padding: 8px 10px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); font-family: var(--sans); font-size: 12px;
+  }
+  .export-bar-group select:focus,
+  .export-bar-group input:focus { outline: none; border-color: var(--blue); }
+  .btn-export {
+    background: var(--green); color: #fff; border: none;
+    border-radius: 8px; padding: 9px 18px; font-family: var(--sans);
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: opacity .2s; white-space: nowrap; align-self: flex-end;
+  }
+  .btn-export:hover { opacity: .85; }
+  .btn-export:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* ── QR CODE MODAL ── */
+  #qr-canvas-wrap { display: flex; justify-content: center; margin: 20px 0 10px; }
+  #qr-canvas-wrap canvas, #qr-canvas-wrap img { border-radius: 8px; border: 8px solid #fff; }
+  .qr-user-label { text-align: center; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .qr-org-label  { text-align: center; font-size: 11px; color: var(--muted); margin-bottom: 14px; }
+  .qr-note { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; font-size: 11px; color: var(--muted); line-height: 1.6; margin-bottom: 4px; }
+  .btn-download-qr {
+    width: 100%; padding: 10px; background: var(--blue); color: #fff;
+    border: none; border-radius: 8px; font-family: var(--sans);
+    font-size: 13px; font-weight: 600; cursor: pointer; margin-top: 14px; transition: opacity .2s;
+  }
+  .btn-download-qr:hover { opacity: .85; }
+
+  .sub-count-bar {
+    font-size: 12px; color: var(--muted); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .sub-count-bar b { color: var(--blue); font-family: 'Syncopate', sans-serif; font-size: 15px; }
+
+  /* ── LOGO PREVIEW ── */
+  .logo-preview-wrap {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 16px; margin-bottom: 14px;
+  }
+  .logo-preview-img {
+    max-height: 72px; max-width: 200px; border-radius: 6px;
+    border: 1px solid var(--border); background: #fff; padding: 4px;
+    object-fit: contain; display: none;
+  }
+  .logo-preview-placeholder {
+    font-size: 32px; width: 72px; height: 72px; border-radius: 6px;
+    border: 1px dashed var(--border); display: flex;
+    align-items: center; justify-content: center;
+  }
+  .logo-preview-info { flex: 1; min-width: 0; }
+  .logo-preview-url {
+    font-size: 11px; color: var(--muted); word-break: break-all;
+    margin-top: 4px; line-height: 1.5;
+  }
+
+  /* ── LANGUAGE SWITCHER ── */
+  .lang-wrap { position: relative; display: flex; align-items: center; gap: 8px; }
+  .btn-lang {
+    background: transparent; color: var(--muted); border: 1px solid var(--border);
+    border-radius: 6px; padding: 5px 10px; font-family: var(--sans); font-size: 13px;
+    cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 5px;
+    white-space: nowrap;
+  }
+  .btn-lang:hover { color: var(--text); border-color: var(--muted); }
+  .lang-dropdown {
+    display: none; position: absolute; top: calc(100% + 6px); right: 0;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 6px; min-width: 220px; z-index: 999; box-shadow: 0 8px 24px rgba(0,0,0,.4);
+    max-height: 360px; overflow-y: auto;
+  }
+  .lang-dropdown.open { display: block; }
+  .lang-option {
+    padding: 8px 12px; border-radius: 6px; cursor: pointer;
+    font-size: 13px; transition: background .15s; display: flex;
+    align-items: center; justify-content: space-between;
+  }
+  .lang-option:hover { background: var(--surface2); }
+  .lang-option.selected { color: var(--blue); }
+  .lang-option .lang-check { color: var(--blue); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- ═══════ LOGIN ═══════ -->
+<div id="login-overlay">
+  <div class="login-box">
+    <span class="login-icon">🏢</span>
+    <div class="login-title" id="login-title-el">Organisation Portal</div>
+    <div class="login-sub" id="login-sub-el">NGO Report App · Manage your organisation's users and account details.</div>
+
+    <label class="login-label" id="login-org-label-el">Organisation Name</label>
+    <input type="text" class="login-input" id="login-org"
+      placeholder="e.g. V-KARE Foundation" autocomplete="off">
+
+    <label class="login-label" id="login-pw-label-el">Password</label>
+    <input type="password" class="login-input" id="login-pw"
+      placeholder="Your portal password" autocomplete="current-password">
+
+    <button class="btn-signin" id="btn-signin-el" onclick="signIn()">Sign In</button>
+    <div class="login-err" id="login-err"></div>
+    <div class="login-hint" id="login-hint-el">Don't have a password? Contact your app developer.</div>
+  </div>
+</div>
+
+<!-- ═══════ MAIN APP ═══════ -->
+<div id="app">
+
+  <header class="header">
+    <div>
+      <div class="logo" id="header-logo-el">📋 NGO Report App</div>
+      <div class="header-sub" id="header-orgname">—</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <!-- 🌐 Language Switcher — Step 28 -->
+      <div class="lang-wrap" id="lang-wrap">
+        <button class="btn-lang" onclick="toggleLangDropdown()" id="btn-lang-current">
+          🌐 <span id="lang-current-label">English</span>
+        </button>
+        <div class="lang-dropdown" id="lang-dropdown">
+          <!-- populated by buildLangDropdown() -->
+        </div>
+      </div>
+      <button class="btn-signout" id="btn-signout-el" onclick="signOut()">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="org-banner">
+    <div class="org-avatar">🏢</div>
+    <div>
+      <div class="org-name" id="banner-orgname">—</div>
+      <div class="org-meta" id="banner-meta">—</div>
+    </div>
+    <span class="licence-badge" id="banner-badge"></span>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-users-btn"     onclick="showTab('users',this)">👥 Users</button>
+    <button class="tab-btn"        id="tab-depts-btn"     onclick="showTab('departments',this)">🏬 Departments</button>
+    <button class="tab-btn"        id="tab-devices-btn"   onclick="showTab('devices',this)">📱 Devices</button>
+    <button class="tab-btn"        id="tab-broadcast-btn" onclick="showTab('broadcast',this)">📢 Broadcast</button>
+    <button class="tab-btn"        id="tab-subs-btn"      onclick="showTab('submissions',this)">📍 Submissions</button>
+    <button class="tab-btn"        id="tab-forms-btn"     onclick="showTab('forms',this)">📋 Forms</button>
+    <button class="tab-btn"        id="tab-org-btn"       onclick="showTab('orgdetails',this)">🏢 Org Details</button>
+    <button class="tab-btn"        id="tab-ai-btn"        onclick="showTab('aisettings',this)">🤖 AI Settings</button>
+    <button class="tab-btn"        id="tab-pw-btn"        onclick="showTab('changepassword',this)">🔒 Change Password</button>
+  </div>
+
+  <div class="content">
+
+    <!-- ── USERS ── -->
+    <div id="tab-users" class="tab-panel active">
+      <div class="section-header">
+        <div class="section-title">Staff Users</div>
+        <button class="btn btn-primary btn-sm" onclick="openAddUser()">+ Add User</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Username</th><th>Password</th><th>Role</th><th>Department</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="users-body">
+            <tr class="loading-row"><td colspan="6"><span class="spin"></span>Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── DEPARTMENTS ── -->
+    <div id="tab-departments" class="tab-panel">
+      <div class="section-header">
+        <div class="section-title">Departments</div>
+        <button class="btn btn-primary btn-sm" onclick="openAddDept()">+ Add Department</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+        Departments are used to organise your staff. When you rename a department, all staff assigned to it are updated automatically.
+      </div>
+      <div id="dept-count-bar" style="display:none;margin-bottom:14px">
+        <span style="font-size:12px;color:var(--muted)">
+          <span id="dept-count-val" style="font-size:18px;font-weight:700;color:var(--blue);font-family:'Syncopate',sans-serif">0</span>
+          &nbsp;department(s) registered
+        </span>
+      </div>
+      <div id="depts-list"><div class="empty-state"><span class="spin"></span>Loading…</div></div>
+    </div>
+
+    <!-- ── DEVICES ── -->
+    <div id="tab-devices" class="tab-panel">
+      <div class="section-header">
+        <div class="section-title">Registered Devices</div>
+        <button class="btn btn-ghost btn-sm" onclick="loadDevices()">↻ Refresh</button>
+      </div>
+      <div class="device-summary" id="device-summary" style="display:none">
+        <div class="device-stat dv-total">
+          <div class="device-stat-value" id="dv-stat-total">0</div>
+          <div class="device-stat-label">Total Devices</div>
+        </div>
+        <div class="device-stat dv-active">
+          <div class="device-stat-value" id="dv-stat-active">0</div>
+          <div class="device-stat-label">Active</div>
+        </div>
+        <div class="device-stat dv-halted">
+          <div class="device-stat-value" id="dv-stat-halted">0</div>
+          <div class="device-stat-label">Halted</div>
+        </div>
+        <div class="device-stat dv-trial">
+          <div class="device-stat-value" id="dv-stat-trial">0</div>
+          <div class="device-stat-label">Trial</div>
+        </div>
+        <div class="device-stat dv-offline">
+          <div class="device-stat-value" id="dv-stat-offline">0</div>
+          <div class="device-stat-label">Offline 30d+</div>
+        </div>
+      </div>
+      <div id="halted-info" style="display:none;background:var(--red-dim);border:1px solid var(--red);border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:12px;color:var(--red)">
+        ⚠️ One or more devices are <b>HALTED</b>. Click <b>▶ Restore</b> on the device row to re-enable access.
+      </div>
+      <div id="offline-info" style="display:none;background:rgba(239,68,68,0.08);border:1px solid var(--red);border-radius:8px;padding:12px 16px;margin-bottom:12px;font-size:12px;color:var(--red)"></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Device ID</th><th>Current User</th><th>Status</th><th>Registered</th><th>Last Active</th><th>Health</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="devices-body">
+            <tr class="loading-row"><td colspan="7"><span class="spin"></span>Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:14px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);line-height:1.6">
+        <b style="color:var(--text)">ℹ️ About device slots:</b> Each device that logs in uses one slot.
+        Removing a device frees that slot so a new device can register. If a device is lost or replaced, remove it here.
+        Use <b>⏸ Halt</b> to suspend a device without removing it — the slot is kept and access can be restored at any time with <b>▶ Restore</b>.
+        Use <b>👤 Reassign</b> to update which staff member is shown as the current user on a device.
+        Use <b>🔑 Password</b> to reset the password of whoever is currently assigned to the device.
+      </div>
+    </div>
+
+    <!-- ── BROADCAST ── -->
+    <div id="tab-broadcast" class="tab-panel">
+      <div class="section-header"><div class="section-title">📢 Send Broadcast Message</div></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.6">
+        Send a push notification to all staff devices in your organisation.
+        Staff must have opened the app at least once to receive messages.
+      </div>
+      <div class="info-card" style="max-width:560px">
+        <div class="form-group" style="margin-bottom:14px">
+          <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px">Title</label>
+          <input type="text" id="cbc-title" placeholder="e.g. Weekly report reminder" maxlength="100"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:13px">
+        </div>
+        <div class="form-group" style="margin-bottom:18px">
+          <label style="display:block;font-size:12px;color:var(--muted);margin-bottom:6px">Message</label>
+          <textarea id="cbc-body" placeholder="Type your message here…" maxlength="500" rows="4"
+            style="width:100%;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-family:inherit;font-size:13px;resize:vertical"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="sendClientBroadcast()">📢 Send to My Staff</button>
+      </div>
+      <div id="cbc-result" style="display:none;margin-top:18px;max-width:560px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px">Broadcast Result</div>
+        <div id="cbc-result-body" style="font-size:13px;color:var(--muted);line-height:1.8"></div>
+      </div>
+    </div>
+
+    <!-- ── SUBMISSIONS ── -->
+    <div id="tab-submissions" class="tab-panel">
+      <div class="section-header">
+        <div class="section-title">📍 Submissions</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="loadSubmissions()">↻ Refresh</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+        View and export all submissions from your staff. Use the filters below to narrow by staff member, date, or form.
+        Click <b>📥 Export to Excel</b> to download filtered results — each form type gets its own sheet with all fields as columns.
+      </div>
+
+      <!-- ── Filter + Export bar ── -->
+      <div class="export-bar">
+        <div class="export-bar-group">
+          <label>Staff Member</label>
+          <select id="filter-staff">
+            <option value="">All Staff</option>
+          </select>
+        </div>
+        <div class="export-bar-group">
+          <label>Form Name</label>
+          <select id="filter-form">
+            <option value="">All Forms</option>
+          </select>
+        </div>
+        <div class="export-bar-group">
+          <label>From Date</label>
+          <input type="date" id="filter-from">
+        </div>
+        <div class="export-bar-group">
+          <label>To Date</label>
+          <input type="date" id="filter-to">
+        </div>
+        <button class="btn-export" onclick="applySubFilters()">🔍 Filter</button>
+        <button class="btn-export" style="background:var(--blue)" onclick="clearSubFilters()">✕ Clear</button>
+        <button class="btn-export" id="btn-export-excel" onclick="exportToExcel()">📥 Export Excel</button>
+      </div>
+
+      <!-- ── Count bar ── -->
+      <div class="sub-count-bar" id="sub-count-bar" style="display:none">
+        Showing <b id="sub-count-val">0</b> submission(s)
+        <span id="sub-filter-note" style="color:var(--yellow)"></span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Sub #</th><th>Form</th><th>Submitted By</th>
+              <th>Date &amp; Time</th><th>Department</th>
+              <th>Latitude</th><th>Longitude</th><th>GPS Status</th><th>Map</th>
+            </tr>
+          </thead>
+          <tbody id="submissions-body">
+            <tr class="loading-row"><td colspan="9"><span class="spin"></span>Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── FORMS ── -->
+    <div id="tab-forms" class="tab-panel">
+      <div class="section-header">
+        <div class="section-title">📋 Form Templates</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="loadForms()">↻ Refresh</button>
+          <button class="btn btn-ghost btn-sm" id="btn-import-excel" onclick="openImportModal()">📥 Import from Excel</button>
+          <button class="btn btn-primary btn-sm" onclick="openFormBuilder(null)">+ New Form</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+        Build form templates here and assign them to your staff devices or specific users.
+        Staff will automatically download assigned forms when they log in to the app.
+        Choose <b>All Devices</b> to send to everyone, or select <b>Specific</b> and enter
+        device IDs / usernames separated by commas.
+      </div>
+      <div id="forms-count-bar" style="display:none;margin-bottom:14px">
+        <span style="font-size:12px;color:var(--muted)">
+          <span id="forms-count-val" style="font-size:18px;font-weight:700;color:var(--blue);font-family:'Syncopate',sans-serif">0</span>
+          &nbsp;form(s) published
+        </span>
+      </div>
+      <div id="forms-list"><div class="empty-state"><span class="spin"></span>Loading…</div></div>
+    </div>
+
+    <!-- ── ORG DETAILS ── -->
+    <div id="tab-orgdetails" class="tab-panel">
+      <div class="info-card">
+        <h3>Licence Information</h3>
+        <div class="info-row"><span class="info-label">Organisation</span><span class="info-value" id="det-org">—</span></div>
+        <div class="info-row"><span class="info-label">Org ID</span><span class="info-value" id="det-orgid">—</span></div>
+        <div class="info-row"><span class="info-label">Licence Type</span><span class="info-value" id="det-type">—</span></div>
+        <div class="info-row"><span class="info-label">Expiry Date</span><span class="info-value" id="det-expiry">—</span></div>
+        <div class="info-row"><span class="info-label">Days Remaining</span><span class="info-value" id="det-days">—</span></div>
+        <div class="info-row"><span class="info-label">Status</span><span class="info-value" id="det-status">—</span></div>
+      </div>
+      <div class="info-card">
+        <h3>Contact Email</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Update the contact email on record for your organisation.</p>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" class="form-input" id="email-input" placeholder="contact@yourorg.com">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="updateEmail()">Update Email</button>
+      </div>
+
+      <div class="info-card">
+        <h3>🖼 Organisation Logo</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.7">
+          Your logo appears on the staff login screen and dashboard inside the app.
+          Host the image anywhere publicly accessible (Google Drive public link, Imgur, your website, etc.)
+          and paste the direct image URL below. Recommended size: <b>400×250px or wider</b>, PNG or JPG.
+        </p>
+
+        <!-- Live preview -->
+        <div class="logo-preview-wrap" id="logo-preview-wrap">
+          <div class="logo-preview-placeholder" id="logo-placeholder">🏢</div>
+          <img class="logo-preview-img" id="logo-preview-img" alt="Logo preview"
+               onerror="this.style.display='none';document.getElementById('logo-placeholder').style.display='flex'">
+          <div class="logo-preview-info">
+            <div style="font-size:13px;font-weight:600" id="logo-preview-status">No logo set</div>
+            <div class="logo-preview-url" id="logo-preview-url"></div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Logo URL</label>
+          <input type="url" class="form-input" id="logo-url-input"
+            placeholder="https://example.com/your-logo.png"
+            oninput="previewLogo(this.value)">
+          <div class="form-hint">
+            Must be a direct image URL (ending in .png, .jpg, .jpeg, .webp, or .gif).
+            The URL must be publicly accessible — no login required to view it.
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+          <button class="btn btn-primary btn-sm" onclick="doSaveLogoUrl()">💾 Save Logo URL</button>
+          <button class="btn btn-danger btn-sm"  onclick="doClearLogoUrl()">🗑 Remove Logo</button>
+        </div>
+      </div>
+
+      <!-- ── Play Store Download Card — Step 23 ── -->
+      <div class="info-card">
+        <h3>📱 Download the App</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.7">
+          Share this link with your staff so they can install the <b>NGO Report App</b>
+          directly from the Google Play Store on their Android device.
+          The app is free to download — a licence is required to activate it.
+        </p>
+        <a id="playstore-link"
+           href="https://play.google.com/store/apps/details?id=com.evdavid.shepreportapp"
+           target="_blank"
+           style="display:inline-flex;align-items:center;gap:10px;
+                  background:#01875f;color:#fff;border-radius:8px;
+                  padding:11px 18px;font-size:13px;font-weight:600;
+                  text-decoration:none;transition:opacity .2s"
+           onmouseover="this.style.opacity='.85'"
+           onmouseout="this.style.opacity='1'">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3.18 23.76a1.5 1.5 0 0 1-.68-.16A1.5 1.5 0 0 1 1.75 22.3V1.7A1.5 1.5 0 0 1 2.5.46a1.5 1.5 0 0 1 1.57.1l17.25 10.3a1.5 1.5 0 0 1 0 2.28L4.07 23.44a1.5 1.5 0 0 1-.89.32z"/>
+          </svg>
+          Get it on Google Play
+        </a>
+        <div style="margin-top:14px;padding:11px 14px;background:var(--surface2);
+                    border:1px solid var(--border);border-radius:8px;
+                    font-size:11px;color:var(--muted);line-height:1.7">
+          <b style="color:var(--text)">ℹ️ How to share with staff</b><br>
+          Copy the Play Store link and send it via WhatsApp, email, or SMS.
+          Staff tap the link on their Android phone → tap <b>Install</b> → open the app → scan their QR code to set up.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── AI SETTINGS ── -->
+    <div id="tab-aisettings" class="tab-panel">
+      <div class="info-card">
+        <h3>🤖 Gemini AI Key</h3>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.7">
+          Your organisation's Gemini AI key is stored securely on the server — it is never sent to
+          any device. Staff use AI features automatically once a key is saved here.<br><br>
+          Get a free key at
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--blue)">
+            aistudio.google.com/app/apikey
+          </a>
+        </p>
+
+        <!-- Status bar -->
+        <div id="ai-status-bar"
+          style="display:none;border-radius:8px;padding:11px 16px;margin-bottom:18px;
+                 font-size:12px;line-height:1.5;border:1px solid">
+        </div>
+
+        <!-- Input + buttons -->
+        <div class="form-group">
+          <label>Gemini API Key</label>
+          <div style="display:flex;gap:10px;align-items:center">
+            <input type="password" class="form-input" id="ai-key-input"
+              placeholder="AIza…"
+              style="font-family:monospace;flex:1">
+            <button class="btn btn-sm"
+              id="ai-key-toggle"
+              onclick="toggleAiKeyVisibility()"
+              style="background:transparent;border:1px solid var(--border);
+                     color:var(--muted);min-width:36px;padding:6px 10px;
+                     border-radius:6px;cursor:pointer;font-size:14px"
+              title="Show / hide key">👁</button>
+          </div>
+          <div class="form-hint">
+            Paste your full Gemini API key. It will be stored encrypted on the server against your
+            organisation name only — not shared with any other organisation.
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+          <button class="btn btn-primary btn-sm" onclick="doSaveAiKey()">💾 Save Key</button>
+          <button class="btn btn-ghost btn-sm"   onclick="doCheckAiKeyStatus()">🔍 Check Status</button>
+          <button class="btn btn-danger btn-sm"  onclick="doDeleteAiKey()">🗑 Remove Key</button>
+        </div>
+
+        <div style="margin-top:20px;padding:12px 16px;background:var(--surface2);
+                    border:1px solid var(--border);border-radius:8px;
+                    font-size:11px;color:var(--muted);line-height:1.7">
+          <b style="color:var(--text)">ℹ️ How it works</b><br>
+          • Your key is stored on the server — staff devices never see it.<br>
+          • When a staff member submits a form with AI enabled, the app sends the text to the
+            server. The server calls Gemini using your key and returns the result.<br>
+          • Removing the key disables AI for all staff in your organisation immediately.<br>
+          • If you change your key, just paste the new one and click Save — it overwrites the old one.
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CHANGE PASSWORD ── -->
+    <div id="tab-changepassword" class="tab-panel">
+      <div class="info-card">
+        <h3>Change Password</h3>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:var(--muted);line-height:1.6">
+          ℹ️ This password is used to log in to this portal. Choose something secure and share it only with your organisation's administrator.
+        </div>
+        <div class="form-group">
+          <label>Current Password</label>
+          <input type="password" class="form-input" id="cp-current" autocomplete="current-password">
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" class="form-input" id="cp-new" autocomplete="new-password">
+        </div>
+        <div class="form-group">
+          <label>Confirm New Password</label>
+          <input type="password" class="form-input" id="cp-confirm" autocomplete="new-password">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="changePassword()">Update Password</button>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /app -->
+
+<!-- ═══════ MODALS ═══════ -->
+
+<!-- Add User -->
+<div class="modal-overlay" id="modal-add-user">
+  <div class="modal">
+    <h3>Add Staff User</h3>
+    <div class="modal-sub">The username must match exactly what the staff member uses to log in to the app.</div>
+    <label>Username</label>
+    <input type="text" id="au-username" placeholder="lowercase username" autocomplete="off">
+    <label>Password (min 4 chars)</label>
+    <input type="password" id="au-password" autocomplete="new-password">
+    <label>Role</label>
+    <select id="au-role">
+      <option value="STAFF">STAFF</option>
+      <option value="ADMIN">ADMIN</option>
+      <option value="SUPERVISOR">SUPERVISOR</option>
+    </select>
+    <label>Departments (optional — tick all that apply)</label>
+    <div id="au-dept-checklist"
+      style="max-height:160px;overflow-y:auto;background:var(--surface2);
+             border:1px solid var(--border);border-radius:8px;padding:8px 12px">
+      <span style="color:var(--muted);font-size:12px">Loading departments…</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-user')">Cancel</button>
+      <button class="btn btn-primary" onclick="doAddUser()">Add User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit User (full: password + role + department) -->
+<div class="modal-overlay" id="modal-edit-user">
+  <div class="modal">
+    <h3>Edit User</h3>
+    <div class="modal-sub">Editing: <b id="eu-name-label">—</b></div>
+    <label>New Password (leave blank to keep current)</label>
+    <input type="password" id="eu-password" autocomplete="new-password" placeholder="Leave blank to keep current">
+    <label>Role</label>
+    <select id="eu-role">
+      <option value="STAFF">STAFF</option>
+      <option value="ADMIN">ADMIN</option>
+      <option value="SUPERVISOR">SUPERVISOR</option>
+    </select>
+    <label>Departments (tick all that apply)</label>
+    <div id="eu-dept-checklist"
+      style="max-height:160px;overflow-y:auto;background:var(--surface2);
+             border:1px solid var(--border);border-radius:8px;padding:8px 12px">
+      <span style="color:var(--muted);font-size:12px">Loading departments…</span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-edit-user')">Cancel</button>
+      <button class="btn btn-primary" onclick="doEditUser()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- Block User -->
+<div class="modal-overlay" id="modal-block-user">
+  <div class="modal">
+    <h3>Block User</h3>
+    <div class="modal-sub"><b id="block-name-label">—</b> will be blocked immediately and cannot log in until unblocked.</div>
+    <label>Reason (optional)</label>
+    <input type="text" id="block-reason" placeholder="Optional reason">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-block-user')">Cancel</button>
+      <button class="btn btn-danger" onclick="doBlockUser()">Block User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remove User -->
+<div class="modal-overlay" id="modal-remove-user">
+  <div class="modal">
+    <h3>Remove User</h3>
+    <div class="modal-sub">This will permanently remove <b id="remove-name-label">—</b>. This cannot be undone. Use <i>Block</i> if you just want to suspend access.</div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-remove-user')">Cancel</button>
+      <button class="btn btn-danger" onclick="doRemoveUser()">Remove</button>
+    </div>
+  </div>
+</div>
+
+<!-- Remove Device -->
+<div class="modal-overlay" id="modal-remove-device">
+  <div class="modal">
+    <h3>Remove Device</h3>
+    <div class="modal-sub">
+      This will remove the device from your organisation and free up one device slot.<br><br>
+      <span style="font-family:monospace;font-size:12px;color:var(--muted)" id="remove-device-id">—</span>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px">
+      ⚠️ The staff member using this device will need to re-register it after removal.
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-remove-device')">Cancel</button>
+      <button class="btn btn-danger" onclick="doRemoveDevice()">Remove Device</button>
+    </div>
+  </div>
+</div>
+
+<!-- Halt Device -->
+<div class="modal-overlay" id="modal-halt-device">
+  <div class="modal">
+    <h3>⏸ Halt Device</h3>
+    <div class="modal-sub">
+      The device will be <b>suspended immediately</b>. Staff on this device will not be able to log in until you restore it.<br><br>
+      <span style="font-family:monospace;font-size:12px;color:var(--muted)" id="halt-device-id">—</span>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px">
+      ℹ️ Submissions already made on the device are not affected. The device slot is kept — you can restore access at any time.
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-halt-device')">Cancel</button>
+      <button class="btn btn-danger" onclick="doHaltDevice()">⏸ Halt Device</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reassign Device -->
+<div class="modal-overlay" id="modal-reassign-device">
+  <div class="modal">
+    <h3>👤 Reassign Device</h3>
+    <div class="modal-sub">
+      Change which staff member is shown as the current user on this device.<br>
+      <span style="font-family:monospace;font-size:12px;color:var(--muted)" id="reassign-device-id">—</span>
+    </div>
+    <label>Assign To</label>
+    <select id="reassign-user-select">
+      <option value="">Loading…</option>
+    </select>
+    <p style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5">
+      ℹ️ This updates the tracking record only. The staff member will use their own username and password to log in as normal.
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-reassign-device')">Cancel</button>
+      <button class="btn btn-primary" onclick="doReassignDevice()">Reassign</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reset Password from Device Row -->
+<div class="modal-overlay" id="modal-device-pw">
+  <div class="modal">
+    <h3>🔑 Reset Password</h3>
+    <div class="modal-sub">
+      Resetting password for: <b id="dpw-username-label">—</b><br>
+      <span style="font-family:monospace;font-size:11px;color:var(--muted)">Device: <span id="dpw-device-label">—</span></span>
+    </div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5">
+      The staff member will need to use this new password the next time they log in on their device. The app will save it automatically after the first successful login.
+    </p>
+    <label>New Password (min 4 characters)</label>
+    <input type="password" id="dpw-new" autocomplete="new-password" placeholder="Enter new password">
+    <label style="margin-top:12px">Confirm New Password</label>
+    <input type="password" id="dpw-confirm" autocomplete="new-password" placeholder="Re-enter new password">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-device-pw')">Cancel</button>
+      <button class="btn btn-primary" onclick="doDeviceResetPw()">🔑 Set Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Department -->
+<div class="modal-overlay" id="modal-add-dept">
+  <div class="modal">
+    <h3>Add Department</h3>
+    <div class="modal-sub">Enter a name for the new department.</div>
+    <label>Department Name</label>
+    <input type="text" id="add-dept-name" placeholder="e.g. Field Operations" autocomplete="off">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-dept')">Cancel</button>
+      <button class="btn btn-primary" onclick="doAddDept()">Add Department</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rename Department -->
+<div class="modal-overlay" id="modal-rename-dept">
+  <div class="modal">
+    <h3>Rename Department</h3>
+    <div class="modal-sub">All staff currently assigned to <b id="rename-dept-old-label">—</b> will be updated automatically.</div>
+    <label>New Name</label>
+    <input type="text" id="rename-dept-new" placeholder="New department name" autocomplete="off">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-rename-dept')">Cancel</button>
+      <button class="btn btn-primary" onclick="doRenameDept()">Rename</button>
+    </div>
+  </div>
+</div>
+
+<!-- Form Builder -->
+<div class="modal-overlay" id="modal-form-builder">
+  <div class="modal" style="width:640px">
+    <h3 id="form-builder-title">New Form</h3>
+    <div class="modal-sub">
+      Build a form template and assign it to your staff.
+      Staff will automatically receive it when they log in to the app.
+    </div>
+
+    <label>Form Name <span style="color:var(--red)">*</span></label>
+    <input type="text" id="fb-name" placeholder="e.g. Daily Field Report" maxlength="100">
+
+    <label>Description (optional)</label>
+    <input type="text" id="fb-desc" placeholder="Short description of this form" maxlength="200">
+
+    <label style="margin-top:16px">Assign To</label>
+    <select id="assigned-to-mode" onchange="toggleAssignMode()"
+      style="width:100%;margin-bottom:10px">
+      <option value="ALL">Everyone (All Devices)</option>
+      <option value="DEPT">By Department</option>
+      <option value="SPECIFIC">Specific Users</option>
+    </select>
+
+    <!-- By Department checklist -->
+    <div id="assign-dept-wrap" style="display:none">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">
+        Tick one or more departments. All staff in those departments will see this form.
+      </div>
+      <div id="fb-dept-checklist"
+        style="max-height:150px;overflow-y:auto;background:var(--surface2);
+               border:1px solid var(--border);border-radius:8px;padding:8px 12px">
+        <span style="color:var(--muted);font-size:12px">Loading departments…</span>
+      </div>
+    </div>
+
+    <!-- Specific Users checklist -->
+    <div id="assign-users-wrap" style="display:none">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">
+        Tick the staff members who should receive this form.
+      </div>
+      <div id="fb-users-checklist"
+        style="max-height:150px;overflow-y:auto;background:var(--surface2);
+               border:1px solid var(--border);border-radius:8px;padding:8px 12px">
+        <span style="color:var(--muted);font-size:12px">Loading users…</span>
+      </div>
+    </div>
+
+    <div class="form-hint" id="assign-hint">This form will be sent to all devices in your organisation.</div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px;margin-bottom:10px">
+      <label style="margin:0;font-size:13px;font-weight:600;color:var(--text)">Form Fields</label>
+      <button class="btn btn-ghost btn-sm" onclick="addField()">+ Add Field</button>
+    </div>
+
+    <div id="fields-builder-list"></div>
+    <div id="fb-no-fields" style="text-align:center;padding:20px;color:var(--muted);font-size:12px;border:1px dashed var(--border);border-radius:8px;margin-bottom:12px">
+      No fields yet. Click <b>+ Add Field</b> to start building your form.
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-form-builder')">Cancel</button>
+      <button class="btn btn-primary" onclick="doPublishForm()">💾 Publish Form</button>
+    </div>
+  </div>
+</div>
+
+<!-- Archive Form -->
+<div class="modal-overlay" id="modal-archive-form">
+  <div class="modal">
+    <h3>Archive Form</h3>
+    <div class="modal-sub">
+      This will remove <b id="archive-form-name">—</b> from all devices.
+      Staff will no longer see it in the app. This cannot be undone.
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-archive-form')">Cancel</button>
+      <button class="btn btn-danger" onclick="doArchiveForm()">Archive</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── IMPORT FROM EXCEL ── -->
+<div class="modal-overlay" id="modal-import-excel">
+  <div class="modal" style="width:620px">
+    <h3>📥 Import Form from Excel</h3>
+    <div class="modal-sub">
+      Import a form template from an Excel file. Use the blank template for the fastest
+      result, or upload any existing Excel form and let AI detect the fields.
+    </div>
+
+    <!-- Download template -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+                padding:14px 16px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-size:13px;font-weight:600;margin-bottom:3px">📄 Download Blank Template</div>
+          <div style="font-size:11px;color:var(--muted);line-height:1.5">
+            Fill in the spreadsheet then upload it below. Fastest method — no AI needed.
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="downloadFormTemplate()">⬇️ Download Template</button>
+      </div>
+    </div>
+
+    <!-- File upload -->
+    <label style="margin-top:0">Upload your Excel file (.xlsx)</label>
+    <input type="file" id="import-file-input" accept=".xlsx,.xls"
+      style="width:100%;padding:9px 12px;background:var(--surface2);
+             border:1px solid var(--border);border-radius:8px;color:var(--text);
+             font-family:var(--sans);font-size:13px;cursor:pointer"
+      onchange="onImportFileSelected(this)">
+    <div id="import-file-name"
+      style="font-size:11px;color:var(--muted);margin-top:5px;min-height:16px"></div>
+
+    <!-- Import mode -->
+    <label style="margin-top:14px">Import Mode</label>
+    <div class="import-mode-row">
+      <button class="import-mode-btn selected" id="mode-btn-template"
+        onclick="selectImportMode('template')">
+        <span class="mode-title">✅ Template Format</span>
+        <span class="mode-sub">Use with the blank template downloaded above.
+          Fast and 100% accurate — no AI needed.</span>
+      </button>
+      <button class="import-mode-btn" id="mode-btn-ai"
+        onclick="selectImportMode('ai')">
+        <span class="mode-title">🤖 AI Import (Any Excel)</span>
+        <span class="mode-sub" id="ai-mode-sub">AI reads your existing form and
+          detects fields automatically. Requires a Gemini API key.</span>
+      </button>
+    </div>
+
+    <div id="import-ai-warning" style="display:none;background:var(--yellow-dim);
+      border:1px solid var(--yellow);border-radius:8px;padding:10px 14px;
+      font-size:12px;color:var(--yellow);margin-bottom:8px;line-height:1.6">
+      ⚠️ <b>No AI key found.</b> AI Import requires a Gemini API key saved in the
+      <b>🤖 AI Settings</b> tab. Without it, use the Template Format instead.
+    </div>
+
+    <div id="import-error" style="display:none;background:var(--red-dim);
+      border:1px solid var(--red);border-radius:8px;padding:10px 14px;
+      font-size:12px;color:var(--red);margin-top:8px"></div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-import-excel')">Cancel</button>
+      <button class="btn btn-primary" id="btn-do-preview" onclick="doPreviewImport()">
+        🔍 Preview Fields
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── IMPORT PREVIEW ── -->
+<div class="modal-overlay" id="modal-import-preview">
+  <div class="modal" style="width:700px">
+    <h3>📋 Preview Detected Fields</h3>
+    <div class="modal-sub">
+      Review the fields below before loading them into the form builder.
+      You can edit, reorder, or remove fields once they are loaded.
+    </div>
+    <div id="import-preview-summary" class="import-summary"></div>
+    <div class="import-preview-wrap">
+      <table class="import-preview-tbl">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Field Label</th>
+            <th>Type</th>
+            <th>Required</th>
+            <th>Options / Hint</th>
+          </tr>
+        </thead>
+        <tbody id="import-preview-body"></tbody>
+      </table>
+    </div>
+    <div id="import-preview-warning" style="display:none;margin-top:10px;
+      background:var(--yellow-dim);border:1px solid var(--yellow);border-radius:8px;
+      padding:10px 14px;font-size:12px;color:var(--yellow);line-height:1.6"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-import-preview')">← Back</button>
+      <button class="btn btn-primary" onclick="doLoadIntoBuilder()">
+        ✏️ Load into Form Builder
+      </button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay" id="modal-generate-qr">
+  <div class="modal" style="max-width:380px">
+    <h3>🔲 Staff QR Code</h3>
+    <div class="modal-sub">
+      Share this QR with your staff member. They scan it in the app to set up their device instantly — no typing needed.
+    </div>
+    <div class="qr-user-label">👤 <span id="qr-username-label">—</span></div>
+    <div class="qr-org-label">🏢 <span id="qr-org-label">—</span></div>
+    <div id="qr-canvas-wrap"><div id="qr-code-div"></div></div>
+    <div class="qr-note">
+      ⚠️ <b>Password is NOT included.</b> The staff member must type their own password when they scan this code.
+      Print it, screenshot it, or send via WhatsApp.
+    </div>
+    <button class="btn-download-qr" onclick="downloadQr()">⬇️ Download QR as Image</button>
+    <div class="modal-actions" style="margin-top:10px">
+      <button class="btn btn-ghost" onclick="closeModal('modal-generate-qr')">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ═══════ JAVASCRIPT ═══════ -->
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwVtUduUnp0-15kqTSSNhcZ9BqsI805E5GFpTvNREAJST8hgcL_WDi5NfW2pA8rk9E/exec";
+
+let _org = "", _orgPw = "", _orgData = {};
+let _deptCache = []; // FIX: cached dept list so modals open instantly
+let _editTarget = "", _blockTarget = "", _removeTarget = "", _removeDeviceId = "";
+let _haltDeviceId = "", _reassignDeviceId = "", _devicePwId = "", _devicePwUser = "";
+let _renameDeptOld = "";
+let _editFormId = null;
+let _archiveFormId = "", _archiveFormName = "";
+let _formFields = [];
+let _cbIdx = 0;
+
+// ── JSONP ──────────────────────────────────────────────────────────
+function gasCall(params, cb) {
+  const id = "cb_" + Date.now() + "_" + (++_cbIdx);
+  window[id] = function(data) {
+    delete window[id];
+    const s = document.getElementById(id);
+    if (s) s.remove();
+    cb(data);
+  };
+  const qs = Object.entries(params).map(([k,v]) => k + "=" + encodeURIComponent(v)).join("&");
+  const s  = document.createElement("script");
+  s.id  = id;
+  s.src = GAS_URL + "?" + qs + "&callback=" + id;
+  s.onerror = () => { delete window[id]; s.remove(); cb({ error: true, message: "Network error" }); };
+  document.body.appendChild(s);
+}
+
+function clientCall(action, extra, cb) {
+  gasCall(Object.assign({ action, org: _org, orgpassword: _orgPw }, extra), cb);
+}
+
+// ── SIGN IN / OUT ──────────────────────────────────────────────────
+function signIn() {
+  const org = document.getElementById("login-org").value.trim().toLowerCase();
+  const pw  = document.getElementById("login-pw").value.trim();
+  if (!org || !pw) { document.getElementById("login-err").textContent = "Enter organisation name and password"; return; }
+  document.getElementById("login-err").textContent = "";
+  gasCall({ action: "clientlogin", org, orgpassword: pw }, function(d) {
+    if (d.error) { document.getElementById("login-err").textContent = "❌ " + d.message; return; }
+    _org = org; _orgPw = pw; _orgData = d;
+    document.getElementById("login-overlay").style.display = "none";
+    document.getElementById("app").style.display = "flex";
+    populateOrgDetails(d);
+    loadUsers();
+    refreshDeptCache(); // FIX: pre-load dept cache so edit/add user modals are instant
+    startDeviceAutoRefresh();
+  });
+}
+
+const DEVICE_REFRESH_MS = 6 * 60 * 60 * 1000;
+let _deviceRefreshTimer = null;
+
+function startDeviceAutoRefresh() {
+  stopDeviceAutoRefresh();
+  _deviceRefreshTimer = setInterval(function() {
+    clientCall("clientlistdevices", {}, function(d) {
+      if (!d.error) {
+        const devTab = document.getElementById("tab-devices");
+        if (devTab && devTab.classList.contains("active"))
+          renderDevices(d.devices || [], d.deviceCount || 0, d.maxDevices || 10);
+      }
+    });
+  }, DEVICE_REFRESH_MS);
+}
+function stopDeviceAutoRefresh() {
+  if (_deviceRefreshTimer) { clearInterval(_deviceRefreshTimer); _deviceRefreshTimer = null; }
+}
+
+function signOut() {
+  stopDeviceAutoRefresh();
+  _org = ""; _orgPw = ""; _orgData = {};
+  document.getElementById("login-org").value = "";
+  document.getElementById("login-pw").value  = "";
+  document.getElementById("login-err").textContent = "";
+  document.getElementById("login-overlay").style.display = "flex";
+  document.getElementById("app").style.display = "none";
+  // Clear all data panels so previous org's data never shows to the next org
+  document.getElementById("forms-list").innerHTML = '<div class="empty-state"><span class="spin"></span>Loading…</div>';
+  document.getElementById("forms-count-bar").style.display = "none";
+  document.getElementById("users-body").innerHTML = '<tr class="loading-row"><td colspan="6"><span class="spin"></span>Loading…</td></tr>';
+  document.getElementById("depts-list").innerHTML = '<div class="empty-state"><span class="spin"></span>Loading…</div>';
+  document.getElementById("submissions-body").innerHTML = '<tr class="loading-row"><td colspan="9"><span class="spin"></span>Loading…</td></tr>';
+  _allSubmissions = []; _shownSubmissions = []; _deptCache = [];
+}
+
+// ── ORG DETAILS ────────────────────────────────────────────────────
+function populateOrgDetails(d) {
+  const status = (d.status || "").toUpperCase();
+
+  // Calculate days remaining client-side from expiry date — GAS field name varies
+  let days = d.daysRemaining !== undefined ? d.daysRemaining
+           : d.days_remaining !== undefined ? d.days_remaining
+           : null;
+  if (days === null || days === undefined) {
+    const expiry = d.expiryDate || d.expiry_date || "";
+    if (expiry) {
+      const diff = new Date(expiry).setHours(23,59,59,999) - Date.now();
+      days = Math.max(0, Math.ceil(diff / 86400000));
+    } else {
+      days = 0;
+    }
+  }
+  days = parseInt(days, 10) || 0;
+
+  const daysColor = days <= 0 ? "color:var(--red)" : days <= 30 ? "color:var(--yellow)" : "color:var(--green)";
+  setText("header-orgname", d.org || _org);
+  setText("banner-orgname", d.org || _org);
+  setText("banner-meta", (d.licenseType || "—") + " · Expires " + (d.expiryDate || "—"));
+  const badgeEl = document.getElementById("banner-badge");
+  badgeEl.textContent = status;
+  badgeEl.className = "licence-badge " + (status === "ACTIVE" ? "lic-active" : status === "EXPIRED" ? "lic-expired" : "lic-revoked");
+  setText("det-org",    d.org || "—");
+  setText("det-orgid",  d.orgId || "—");
+  setText("det-type",   d.licenseType || "—");
+  setText("det-expiry", d.expiryDate || "—");
+  document.getElementById("det-days").textContent  = days;
+  document.getElementById("det-days").style.cssText = daysColor;
+  setText("det-status", status);
+  document.getElementById("email-input").value = d.email || "";
+  // Logo URL — populate input and live preview
+  const savedLogo = d.logoUrl || d.logo_url || "";
+  document.getElementById("logo-url-input").value = savedLogo;
+  previewLogo(savedLogo);
+}
+
+function updateEmail() {
+  const email = document.getElementById("email-input").value.trim();
+  if (!email) { toast("Enter an email address", "error"); return; }
+  clientCall("clientupdateemail", { email }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Email updated ✓", "success");
+  });
+}
+
+// ── LOGO URL ────────────────────────────────────────────────────────
+function previewLogo(url) {
+  const img        = document.getElementById("logo-preview-img");
+  const placeholder = document.getElementById("logo-placeholder");
+  const statusEl   = document.getElementById("logo-preview-status");
+  const urlEl      = document.getElementById("logo-preview-url");
+
+  url = (url || "").trim();
+  if (!url) {
+    img.style.display         = "none";
+    placeholder.style.display = "flex";
+    statusEl.textContent      = "No logo set";
+    urlEl.textContent         = "";
+    return;
+  }
+  // Show spinner while loading
+  statusEl.textContent      = "Loading preview…";
+  urlEl.textContent         = url;
+  placeholder.style.display = "none";
+  img.style.display         = "block";
+  img.src = url;
+  img.onload = function() {
+    statusEl.textContent = "✅ Logo looks good — click Save to apply";
+  };
+  img.onerror = function() {
+    img.style.display         = "none";
+    placeholder.style.display = "flex";
+    statusEl.textContent      = "⚠️ Could not load image — check the URL";
+  };
+}
+
+function doSaveLogoUrl() {
+  const url = document.getElementById("logo-url-input").value.trim();
+  if (!url) { toast("Paste a logo URL first", "error"); return; }
+  if (!url.startsWith("http")) { toast("URL must start with http:// or https://", "error"); return; }
+  clientCall("clientsavelogourl", { logourl: url }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Logo URL saved ✓ — staff will see it on next login", "success");
+    previewLogo(url);
+  });
+}
+
+function doClearLogoUrl() {
+  if (!confirm("Remove the logo? Staff will no longer see it in the app.")) return;
+  clientCall("clientsavelogourl", { logourl: "" }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    document.getElementById("logo-url-input").value = "";
+    previewLogo("");
+    toast("Logo removed", "info");
+  });
+}
+
+function changePassword() {
+  const cur  = document.getElementById("cp-current").value.trim();
+  const nw   = document.getElementById("cp-new").value.trim();
+  const conf = document.getElementById("cp-confirm").value.trim();
+  if (!cur || !nw || !conf) { toast("All fields required", "error"); return; }
+  if (nw !== conf) { toast("New passwords do not match", "error"); return; }
+  if (nw.length < 4) { toast("New password min 4 characters", "error"); return; }
+  clientCall("clientchangepassword", { newpassword: nw }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    _orgPw = nw;
+    toast("Password updated ✓", "success");
+    document.getElementById("cp-current").value = "";
+    document.getElementById("cp-new").value     = "";
+    document.getElementById("cp-confirm").value = "";
+  });
+}
+
+// ── USERS ──────────────────────────────────────────────────────────
+function loadUsers() {
+  setTableLoading("users-body", 5);
+  clientCall("clientlistusers", {}, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    renderUsers(d.users || []);
+  });
+}
+
+function renderUsers(users) {
+  const tb = document.getElementById("users-body");
+  if (!users.length) {
+    tb.innerHTML = '<tr class="loading-row"><td colspan="6">No users found. Add your first staff member.</td></tr>';
+    return;
+  }
+  tb.innerHTML = users.map(u => {
+    const blocked  = (u.status || "").toUpperCase() === "BLOCKED";
+    const deptIds  = u.department_ids || u.department || "";  // v2.26: prefer department_ids
+    const role     = u.role || "STAFF";
+    // Show departments as small pills — comma-separated list displayed neatly
+    const deptList = deptIds ? deptIds.split(",").map(d => d.trim()).filter(d => d) : [];
+    const deptHtml = deptList.length
+      ? deptList.map(d =>
+          `<span style="display:inline-block;background:var(--blue-dim);color:var(--blue);
+           border-radius:10px;padding:1px 7px;font-size:10px;margin:1px 2px 1px 0">${esc(d)}</span>`
+        ).join("")
+      : `<span style="color:var(--muted);font-size:12px">—</span>`;
+    return `<tr>
+      <td><b>${esc(u.username)}</b></td>
+      <td style="font-size:12px;color:var(--muted)">${esc(u.password || "—")}</td>
+      <td><span style="font-size:11px;color:var(--purple)">${esc(role)}</span></td>
+      <td style="font-size:12px">${deptHtml}</td>
+      <td>${blocked ? '<span class="badge badge-blocked">BLOCKED</span>' : '<span class="badge badge-active">ACTIVE</span>'}</td>
+      <td>
+        <div class="action-btns">
+          <button class="btn btn-sm btn-ghost"   onclick="openEditUser('${esc(u.username)}','${esc(role)}','${esc(deptIds)}')">✏️ Edit</button>
+          ${blocked
+            ? `<button class="btn btn-sm btn-ok"   onclick="doUnblockUser('${esc(u.username)}')">Unblock</button>`
+            : `<button class="btn btn-sm btn-warn" onclick="openBlockUser('${esc(u.username)}')">Block</button>`}
+          <button class="btn btn-sm btn-ghost"   onclick="openGenerateQr('${esc(u.username)}')">🔲 QR</button>
+          <button class="btn btn-sm btn-warn"   onclick="doResetDevice('${esc(u.username)}')" title="Clear device binding so staff can log in from a new phone">${u.deviceBound ? '📱 Reset Device' : '📱 No Device'}</button>
+          <button class="btn btn-sm btn-danger" onclick="openRemoveUser('${esc(u.username)}')">Remove</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+// ── v2.26: Multi-select department checklist ──────────────────────
+// Renders checkboxes into a div instead of a <select>.
+// currentDepts is a comma-separated string e.g. "Health,Education".
+function loadDeptsIntoChecklist(divId, currentDepts) {
+  const wrap = document.getElementById(divId);
+
+  // Parse the current selection into a Set for fast lookup
+  const selected = new Set(
+    (currentDepts || "").split(",").map(d => d.trim().toLowerCase()).filter(d => d)
+  );
+
+  function populateFromList(depts) {
+    if (!depts.length) {
+      wrap.innerHTML = '<span style="color:var(--muted);font-size:12px">No departments yet. Add departments in the Departments tab first.</span>';
+      return;
+    }
+    wrap.innerHTML = depts.map(function(dept) {
+      const checked = selected.has(dept.name.toLowerCase().trim()) ? "checked" : "";
+      const id = "dept-chk-" + divId + "-" + dept.name.replace(/\s+/g, "_");
+      return `<label style="display:flex;align-items:center;gap:8px;padding:5px 0;
+                cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">
+        <input type="checkbox" value="${esc(dept.name)}" ${checked}
+          style="width:auto;padding:0;cursor:pointer" id="${id}">
+        <span>${esc(dept.name)}</span>
+      </label>`;
+    }).join("") +
+    `<label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:12px;color:var(--muted)">
+      <input type="checkbox" id="${divId}-none-chk"
+        style="width:auto;padding:0;cursor:pointer"
+        onchange="if(this.checked){clearChecklist('${divId}');this.checked=false;}">
+      <span>— Clear all selections —</span>
+    </label>`;
+  }
+
+  if (_deptCache.length > 0) {
+    populateFromList(_deptCache);
+    return;
+  }
+
+  wrap.innerHTML = '<span style="color:var(--muted);font-size:12px"><span class="spin"></span>Loading…</span>';
+  clientCall("clientlistdepartments", {}, function(d) {
+    if (d.error) {
+      wrap.innerHTML = '<span style="color:var(--muted);font-size:12px">Could not load departments.</span>';
+      return;
+    }
+    _deptCache = d.departments || [];
+    populateFromList(_deptCache);
+  });
+}
+
+// Read checked checkboxes from a checklist div → comma-separated string
+function getChecklistValue(divId) {
+  const wrap = document.getElementById(divId);
+  const checked = wrap.querySelectorAll("input[type=checkbox]:checked");
+  return Array.from(checked).map(cb => cb.value).filter(v => v).join(",");
+}
+
+// Uncheck all checkboxes in a checklist div
+function clearChecklist(divId) {
+  const wrap = document.getElementById(divId);
+  wrap.querySelectorAll("input[type=checkbox]").forEach(cb => cb.checked = false);
+}
+
+// Refresh the department cache (called after any dept add/rename/remove,
+// and once on sign-in so modals are always ready)
+function refreshDeptCache() {
+  clientCall("clientlistdepartments", {}, function(d) {
+    if (!d.error) _deptCache = d.departments || [];
+  });
+}
+
+function openAddUser() {
+  document.getElementById("au-username").value = "";
+  document.getElementById("au-password").value = "";
+  document.getElementById("au-role").value = "STAFF";
+  loadDeptsIntoChecklist("au-dept-checklist", "");
+  openModal("modal-add-user");
+}
+function doAddUser() {
+  const user = document.getElementById("au-username").value.trim().toLowerCase();
+  const pw   = document.getElementById("au-password").value.trim();
+  const role = document.getElementById("au-role").value;
+  const dept = getChecklistValue("au-dept-checklist");
+  if (!user || !pw) { toast("Username and password required", "error"); return; }
+  if (pw.length < 4) { toast("Password min 4 chars", "error"); return; }
+  clientCall("clientadduserdetailed", { username: user, password: pw, role: role, department: dept }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("User added ✓", "success");
+    closeModal("modal-add-user"); loadUsers();
+  });
+}
+
+function openEditUser(username, currentRole, currentDepts) {
+  _editTarget = username;
+  document.getElementById("eu-name-label").textContent = username;
+  document.getElementById("eu-password").value = "";
+  document.getElementById("eu-role").value = currentRole || "STAFF";
+  loadDeptsIntoChecklist("eu-dept-checklist", currentDepts || "");
+  openModal("modal-edit-user");
+}
+function doEditUser() {
+  const pw   = document.getElementById("eu-password").value.trim();
+  const role = document.getElementById("eu-role").value;
+  const dept = getChecklistValue("eu-dept-checklist");
+  if (pw && pw.length < 4) { toast("Password min 4 chars", "error"); return; }
+  clientCall("clientedituser", { username: _editTarget, password: pw, role: role, department: dept }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("User updated ✓", "success");
+    closeModal("modal-edit-user"); loadUsers();
+  });
+}
+
+function openBlockUser(username) {
+  _blockTarget = username;
+  document.getElementById("block-name-label").textContent = username;
+  document.getElementById("block-reason").value = "";
+  openModal("modal-block-user");
+}
+function doBlockUser() {
+  const notes = document.getElementById("block-reason").value.trim();
+  clientCall("clientblockuser", { username: _blockTarget, notes }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("User blocked", "info");
+    closeModal("modal-block-user"); loadUsers();
+  });
+}
+function doUnblockUser(username) {
+  clientCall("clientunblockuser", { username }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("User unblocked ✓", "success"); loadUsers();
+  });
+}
+// ── NEW v2.25: Reset Device Binding ──────────────────────────────
+// Clears the bound_device_id for a staff member so they can log in
+// from a new phone. Their next login will automatically bind the new device.
+function doResetDevice(username) {
+  if (!confirm("Reset device binding for \"" + username + "\"?\n\nThis allows them to log in from a new device. Their next login will automatically register the new device.")) return;
+  clientCall("clientresetdevice", { username }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Device binding cleared for " + username + " ✓", "success");
+    loadUsers();
+  });
+}
+
+function openRemoveUser(username) {
+  _removeTarget = username;
+  document.getElementById("remove-name-label").textContent = username;
+  openModal("modal-remove-user");
+}
+function doRemoveUser() {
+  clientCall("clientdeleteuser", { username: _removeTarget }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("User removed", "info");
+    closeModal("modal-remove-user"); loadUsers();
+  });
+}
+
+// ── DEVICES ────────────────────────────────────────────────────────
+function deviceHealth(dv) {
+  let score = 0;
+  const st = (dv.status || "").toUpperCase();
+  if      (st === "ACTIVE") score += 40;
+  else if (st === "TRIAL")  score += 28;
+  if (dv.lastActive) {
+    const d = (Date.now() - new Date(dv.lastActive).getTime()) / 86400000;
+    if      (d <= 7)  score += 40;
+    else if (d <= 14) score += 28;
+    else if (d <= 30) score += 14;
+  }
+  if (dv.currentUser && dv.currentUser.trim()) score += 20;
+  let grade, cls, barColor;
+  if      (score >= 90) { grade = "A"; cls = "health-a"; barColor = "#10b981"; }
+  else if (score >= 70) { grade = "B"; cls = "health-b"; barColor = "#34d399"; }
+  else if (score >= 50) { grade = "C"; cls = "health-c"; barColor = "#f59e0b"; }
+  else if (score >= 30) { grade = "D"; cls = "health-d"; barColor = "#f97316"; }
+  else                  { grade = "F"; cls = "health-f"; barColor = "#ef4444"; }
+  return { score, grade, cls, barColor };
+}
+
+function loadDevices() {
+  setTableLoading("devices-body", 7);
+  document.getElementById("device-summary").style.display = "none";
+  document.getElementById("halted-info").style.display = "none";
+  clientCall("clientlistdevices", {}, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    renderDevices(d.devices || [], d.deviceCount || 0, d.maxDevices || 10);
+  });
+}
+
+function renderDevices(devices, count, max) {
+  const tb = document.getElementById("devices-body");
+  let activeCount = 0, haltedCount = 0, trialCount = 0, offlineCount = 0;
+  devices.forEach(dv => {
+    const s = (dv.status || "").toUpperCase();
+    if      (s === "ACTIVE")  activeCount++;
+    else if (s === "HALTED")  haltedCount++;
+    else if (s === "TRIAL" || s === "TRIAL_EXPIRED") trialCount++;
+    if (dv.isOffline) offlineCount++;
+  });
+  document.getElementById("device-summary").style.display = "flex";
+  setText("dv-stat-total",   count + " / " + max);
+  setText("dv-stat-active",  activeCount);
+  setText("dv-stat-halted",  haltedCount);
+  setText("dv-stat-trial",   trialCount);
+  setText("dv-stat-offline", offlineCount);
+  const offlineCard = document.querySelector(".dv-offline");
+  if (offlineCard) offlineCard.style.borderColor = offlineCount > 0 ? "var(--red)" : "var(--border)";
+  if (haltedCount > 0) document.getElementById("halted-info").style.display = "block";
+  const offlineInfo = document.getElementById("offline-info");
+  if (offlineInfo) {
+    offlineInfo.style.display = offlineCount > 0 ? "block" : "none";
+    offlineInfo.textContent = `⚠️ ${offlineCount} device${offlineCount > 1 ? "s have" : " has"} been silent for 30+ days. Please check with those staff members.`;
+  }
+  if (!devices.length) {
+    tb.innerHTML = '<tr class="loading-row"><td colspan="7">No devices registered yet</td></tr>'; return;
+  }
+  tb.innerHTML = devices.map(dv => {
+    const st = (dv.status || "ACTIVE").toUpperCase();
+    let badge = "";
+    if      (st === "ACTIVE")        badge = '<span class="badge badge-active">ACTIVE</span>';
+    else if (st === "HALTED")        badge = '<span class="badge badge-halted">HALTED</span>';
+    else if (st === "TRIAL")         badge = '<span class="badge badge-trial">TRIAL</span>';
+    else if (st === "TRIAL_EXPIRED") badge = '<span class="badge badge-trial-expired">TRIAL EXPIRED</span>';
+    const lastActive = dv.lastActive   ? fmtDate(dv.lastActive)   : "—";
+    const regAt      = dv.registeredAt ? fmtDate(dv.registeredAt) : "—";
+    const h = deviceHealth(dv);
+    let offlineBadge = "", daysSilentHtml = "";
+    if (dv.isOffline) {
+      offlineBadge = '<span class="badge badge-offline">● OFFLINE</span>';
+      if (dv.lastActive) {
+        const days = Math.floor((Date.now() - new Date(dv.lastActive).getTime()) / 86400000);
+        daysSilentHtml = `<span class="days-silent">⚠ ${days} days silent</span>`;
+      }
+    }
+    return `<tr class="${dv.isOffline ? "row-offline" : ""}">
+      <td style="font-family:monospace;font-size:12px;color:var(--muted);word-break:break-all;max-width:180px">${esc(dv.deviceId)}</td>
+      <td style="font-size:13px">${esc(dv.currentUser || "—")}</td>
+      <td>${badge} ${offlineBadge}</td>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap">${regAt}</td>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap">${lastActive}${daysSilentHtml}</td>
+      <td>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+          <span class="health-score ${h.cls}" title="Score: ${h.score}/100">${h.grade}</span>
+          <div class="health-bar-wrap"><div class="health-bar" style="width:${h.score}%;background:${h.barColor}"></div></div>
+        </div>
+      </td>
+      <td>
+        <div class="action-btns">
+          ${st === "HALTED"
+            ? `<button class="btn btn-sm btn-ok"   onclick="doUnhaltDevice('${esc(dv.deviceId)}')">▶ Restore</button>`
+            : `<button class="btn btn-sm btn-warn" onclick="openHaltDevice('${esc(dv.deviceId)}')">⏸ Halt</button>`
+          }
+          <button class="btn btn-sm btn-ghost" onclick="openReassignDevice('${esc(dv.deviceId)}','${esc(dv.currentUser||'')}')">👤 Reassign</button>
+          <button class="btn btn-sm btn-ghost" onclick="openDeviceResetPw('${esc(dv.deviceId)}','${esc(dv.currentUser||'')}')">🔑 Password</button>
+          <button class="btn btn-sm btn-danger" onclick="openRemoveDevice('${esc(dv.deviceId)}')">Remove</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join("");
+}
+
+function openRemoveDevice(deviceId) {
+  _removeDeviceId = deviceId;
+  document.getElementById("remove-device-id").textContent = deviceId;
+  openModal("modal-remove-device");
+}
+function doRemoveDevice() {
+  clientCall("clientremovedevice", { deviceid: _removeDeviceId }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Device removed ✓", "success");
+    closeModal("modal-remove-device"); loadDevices();
+  });
+}
+
+// ── HALT / RESTORE ─────────────────────────────────────────────────
+function openHaltDevice(deviceId) {
+  _haltDeviceId = deviceId;
+  document.getElementById("halt-device-id").textContent = deviceId;
+  openModal("modal-halt-device");
+}
+function doHaltDevice() {
+  clientCall("clienthaltdevice", { deviceid: _haltDeviceId }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Device halted — staff cannot log in until restored", "info");
+    closeModal("modal-halt-device"); loadDevices();
+  });
+}
+function doUnhaltDevice(deviceId) {
+  clientCall("clientunhaltdevice", { deviceid: deviceId }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Device restored ✓ — staff can log in again", "success");
+    loadDevices();
+  });
+}
+
+// ── REASSIGN DEVICE ────────────────────────────────────────────────
+function openReassignDevice(deviceId, currentUser) {
+  _reassignDeviceId = deviceId;
+  document.getElementById("reassign-device-id").textContent = deviceId;
+  const sel = document.getElementById("reassign-user-select");
+  sel.innerHTML = '<option value="">Loading users…</option>';
+  clientCall("clientlistusers", {}, function(d) {
+    if (d.error) { sel.innerHTML = '<option value="">Failed to load users</option>'; return; }
+    const users = d.users || [];
+    sel.innerHTML = users.map(u =>
+      `<option value="${esc(u.username)}" ${u.username === currentUser ? "selected" : ""}>${esc(u.username)} (${esc(u.role||"STAFF")})</option>`
+    ).join("");
+    if (!users.length) sel.innerHTML = '<option value="">No users found</option>';
+  });
+  openModal("modal-reassign-device");
+}
+function doReassignDevice() {
+  const newUser = document.getElementById("reassign-user-select").value;
+  if (!newUser) { toast("Select a user to assign", "error"); return; }
+  clientCall("clientreassigndevice", { deviceid: _reassignDeviceId, newuser: newUser }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Device reassigned to " + newUser + " ✓", "success");
+    closeModal("modal-reassign-device"); loadDevices();
+  });
+}
+
+// ── RESET PASSWORD FROM DEVICE ROW ────────────────────────────────
+// Changes the password of whoever is currently assigned to the device.
+// Uses the same clientedituser GAS action as the Users tab Edit button.
+function openDeviceResetPw(deviceId, currentUser) {
+  if (!currentUser || !currentUser.trim()) {
+    toast("No user assigned to this device. Use Reassign first.", "error"); return;
+  }
+  _devicePwId   = deviceId;
+  _devicePwUser = currentUser;
+  document.getElementById("dpw-username-label").textContent = currentUser;
+  document.getElementById("dpw-device-label").textContent   = deviceId;
+  document.getElementById("dpw-new").value     = "";
+  document.getElementById("dpw-confirm").value = "";
+  openModal("modal-device-pw");
+}
+function doDeviceResetPw() {
+  const nw   = document.getElementById("dpw-new").value.trim();
+  const conf = document.getElementById("dpw-confirm").value.trim();
+  if (!nw)         { toast("Enter a new password", "error"); return; }
+  if (nw.length < 4) { toast("Password must be at least 4 characters", "error"); return; }
+  if (nw !== conf) { toast("Passwords do not match", "error"); return; }
+  clientCall("clientedituser", { username: _devicePwUser, password: nw, role: "", department: "" }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Password for " + _devicePwUser + " updated ✓  — they will need to use it on next login", "success");
+    closeModal("modal-device-pw");
+  });
+}
+
+// ── DEPARTMENTS ────────────────────────────────────────────────────
+let _allUsersForDepts = [];  // cache users for dept display
+
+function loadDepts() {
+  document.getElementById("depts-list").innerHTML = '<div class="empty-state"><span class="spin"></span>Loading…</div>';
+  document.getElementById("dept-count-bar").style.display = "none";
+  // Load both depts and users so we can show who is in each dept
+  clientCall("clientlistdepartments", {}, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    const depts = d.departments || [];
+    clientCall("clientlistusers", {}, function(ud) {
+      _allUsersForDepts = ud.error ? [] : (ud.users || []);
+      renderDepts(depts);
+    });
+  });
+}
+
+function renderDepts(depts) {
+  const el = document.getElementById("depts-list");
+  document.getElementById("dept-count-bar").style.display = "block";
+  setText("dept-count-val", depts.length);
+  if (!depts.length) {
+    el.innerHTML = '<div class="empty-state">No departments yet. Add your first department above.</div>'; return;
+  }
+  el.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px">' +
+    depts.map(d => {
+      // v2.26: match users whose department_ids list CONTAINS this dept name
+      // Handles both single ("Health") and multi ("Health,Education") formats
+      const members = _allUsersForDepts.filter(u => {
+        const deptIds = u.department_ids || u.department || "";
+        const deptList = deptIds.split(",").map(x => x.trim().toLowerCase()).filter(x => x);
+        return deptList.indexOf(d.name.toLowerCase().trim()) >= 0;
+      });
+      const memberHtml = members.length
+        ? members.map(u => `<span style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:2px 8px;font-size:11px;margin:2px 2px 0 0;display:inline-block">${esc(u.username)}</span>`).join("")
+        : `<span style="color:var(--muted);font-size:11px">No staff assigned yet</span>`;
+      return `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:20px">🏬</span>
+            <div>
+              <div style="font-size:14px;font-weight:600">${esc(d.name)}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">Created ${d.createdAt ? fmtDate(d.createdAt) : "—"} &nbsp;·&nbsp; <span style="color:var(--blue)">${members.length} staff</span></div>
+            </div>
+          </div>
+          <div class="action-btns">
+            <button class="btn btn-sm btn-ghost"  onclick="openRenameDept('${esc(d.name)}')">✏️ Rename</button>
+            <button class="btn btn-sm btn-danger" onclick="doDeleteDept('${esc(d.name)}')">Remove</button>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Staff in this department</div>
+          <div>${memberHtml}</div>
+        </div>
+      </div>`;
+    }).join("") + '</div>';
+}
+
+function openAddDept() {
+  document.getElementById("add-dept-name").value = "";
+  openModal("modal-add-dept");
+}
+function doAddDept() {
+  const name = document.getElementById("add-dept-name").value.trim();
+  if (!name) { toast("Enter a department name", "error"); return; }
+  clientCall("clientadddepartment", { deptname: name }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Department added ✓", "success");
+    closeModal("modal-add-dept"); loadDepts(); refreshDeptCache();
+  });
+}
+function openRenameDept(oldName) {
+  _renameDeptOld = oldName;
+  document.getElementById("rename-dept-old-label").textContent = oldName;
+  document.getElementById("rename-dept-new").value = oldName;
+  openModal("modal-rename-dept");
+}
+function doRenameDept() {
+  const newName = document.getElementById("rename-dept-new").value.trim();
+  if (!newName) { toast("Enter a new name", "error"); return; }
+  if (newName.toLowerCase() === _renameDeptOld.toLowerCase()) { toast("New name is the same as old name", "error"); return; }
+  clientCall("clientrenamedepartment", { oldname: _renameDeptOld, newname: newName }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Renamed ✓" + (d.usersUpdated > 0 ? " · " + d.usersUpdated + " staff updated" : ""), "success");
+    closeModal("modal-rename-dept"); loadDepts(); refreshDeptCache();
+  });
+}
+function doDeleteDept(name) {
+  if (!confirm("Remove department: " + name + "?\n\nStaff assigned to it will NOT be deleted — their department field will become blank.")) return;
+  clientCall("clientdeletedepartment", { deptname: name }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Department removed", "info"); loadDepts(); refreshDeptCache();
+  });
+}
+
+// ── BROADCAST ──────────────────────────────────────────────────────
+function sendClientBroadcast() {
+  const title = document.getElementById("cbc-title").value.trim();
+  const body  = document.getElementById("cbc-body").value.trim();
+  if (!title) { toast("Enter a title", "error"); return; }
+  if (!body)  { toast("Enter a message", "error"); return; }
+  document.getElementById("cbc-result").style.display = "none";
+  toast("Sending…", "info");
+  clientCall("clientbroadcast", { title, body }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    document.getElementById("cbc-result-body").innerHTML =
+      `<span style="color:var(--green)">✅ Sent: <b>${d.sent}</b></span><br>` +
+      (d.failed  > 0 ? `<span style="color:var(--red)">❌ Failed: <b>${d.failed}</b></span><br>` : "") +
+      (d.noToken > 0 ? `<span style="color:var(--yellow)">⚠️ No token (app not yet opened): <b>${d.noToken}</b></span><br>` : "") +
+      `<br><span style="color:var(--muted)">Title: "${esc(title)}"</span>`;
+    document.getElementById("cbc-result").style.display = "block";
+    toast("Broadcast sent ✓", "success");
+  });
+}
+
+// ── SUBMISSIONS ────────────────────────────────────────────────────
+let _allSubmissions   = [];   // full cache from GAS
+let _shownSubmissions = [];   // after filters applied
+
+function loadSubmissions() {
+  setTableLoading("submissions-body", 9);
+  document.getElementById("sub-count-bar").style.display = "none";
+  clientCall("clientlistsubmissions", {}, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    _allSubmissions = d.submissions || [];
+    populateSubFilters(_allSubmissions);
+    applySubFilters();
+  });
+}
+
+// Build staff + form dropdowns from actual data
+function populateSubFilters(subs) {
+  const staffSel = document.getElementById("filter-staff");
+  const formSel  = document.getElementById("filter-form");
+  const curStaff = staffSel.value;
+  const curForm  = formSel.value;
+
+  const staffSet = [...new Set(subs.map(s => s.submitted_by || s.submittedBy || "").filter(Boolean))].sort();
+  const formSet  = [...new Set(subs.map(s => s.form_name || s.template_name || s.templateId || "").filter(Boolean))].sort();
+
+  staffSel.innerHTML = '<option value="">All Staff</option>' +
+    staffSet.map(n => `<option value="${esc(n)}" ${n === curStaff ? "selected":""}>${esc(n)}</option>`).join("");
+  formSel.innerHTML  = '<option value="">All Forms</option>' +
+    formSet.map(n  => `<option value="${esc(n)}" ${n === curForm  ? "selected":""}>${esc(n)}</option>`).join("");
+}
+
+function applySubFilters() {
+  const staff   = document.getElementById("filter-staff").value;
+  const form    = document.getElementById("filter-form").value;
+  const fromVal = document.getElementById("filter-from").value;
+  const toVal   = document.getElementById("filter-to").value;
+  const fromMs  = fromVal ? new Date(fromVal).getTime() : 0;
+  const toMs    = toVal   ? new Date(toVal + "T23:59:59").getTime() : Infinity;
+
+  _shownSubmissions = _allSubmissions.filter(function(s) {
+    const byStaff = !staff || (s.submitted_by || s.submittedBy || "") === staff;
+    const byForm  = !form  || (s.form_name || s.template_name || s.templateId || "") === form;
+    const ts      = s.submitted_at ? new Date(s.submitted_at).getTime() : 0;
+    const byDate  = ts >= fromMs && ts <= toMs;
+    return byStaff && byForm && byDate;
+  });
+
+  renderSubmissions(_shownSubmissions);
+
+  // Update count bar
+  const countBar  = document.getElementById("sub-count-bar");
+  const countVal  = document.getElementById("sub-count-val");
+  const filterNote = document.getElementById("sub-filter-note");
+  countBar.style.display = "flex";
+  countVal.textContent   = _shownSubmissions.length;
+  const isFiltered = staff || form || fromVal || toVal;
+  filterNote.textContent = isFiltered ? "(filtered from " + _allSubmissions.length + " total)" : "";
+}
+
+function clearSubFilters() {
+  document.getElementById("filter-staff").value = "";
+  document.getElementById("filter-form").value  = "";
+  document.getElementById("filter-from").value  = "";
+  document.getElementById("filter-to").value    = "";
+  applySubFilters();
+}
+
+function renderSubmissions(subs) {
+  const tb = document.getElementById("submissions-body");
+  if (!subs.length) {
+    tb.innerHTML = '<tr class="loading-row"><td colspan="9">No submissions match your filter</td></tr>';
+    return;
+  }
+  tb.innerHTML = subs.map(function(s) {
+    const lat  = parseFloat(s.latitude)  || 0;
+    const lng  = parseFloat(s.longitude) || 0;
+    const mock = s.is_mock === "true" || s.is_mock === true || s.is_mock === "YES";
+    const hasCoords = lat !== 0 || lng !== 0;
+    const gpsStatus = mock
+      ? '<span class="badge" style="background:#450a0a;color:#ef4444">⚠️ MOCK</span>'
+      : hasCoords
+        ? '<span class="badge badge-active">✓ REAL</span>'
+        : '<span class="badge" style="background:var(--yellow-dim);color:var(--yellow)">NO GPS</span>';
+    const mapBtn = hasCoords
+      ? `<a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" class="btn btn-sm btn-ghost">🗺 Map</a>`
+      : `<span style="color:var(--muted);font-size:12px">—</span>`;
+    const submittedAt = s.submitted_at
+      ? new Date(s.submitted_at).toLocaleString(undefined,
+          { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" })
+      : "—";
+    const formName = s.form_name || s.template_name || s.templateId || "—";
+    const subNum   = s.submission_number || s.sub_id || "—";
+    return `<tr ${mock ? 'style="background:rgba(239,68,68,0.05)"' : ''}>
+      <td style="font-family:monospace;font-size:11px;color:var(--muted)">${esc(subNum)}</td>
+      <td style="font-size:12px;font-weight:600">${esc(formName)}</td>
+      <td style="font-size:12px">${esc(s.submitted_by || s.submittedBy || "—")}</td>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap">${submittedAt}</td>
+      <td style="font-size:12px;color:var(--muted)">${esc(s.department_id || s.departmentId || "—")}</td>
+      <td style="font-family:monospace;font-size:12px">${hasCoords ? lat.toFixed(6) : "—"}</td>
+      <td style="font-family:monospace;font-size:12px">${hasCoords ? lng.toFixed(6) : "—"}</td>
+      <td>${gpsStatus}</td>
+      <td>${mapBtn}</td>
+    </tr>`;
+  }).join("");
+}
+
+// ── EXCEL EXPORT ────────────────────────────────────────────────────
+function exportToExcel() {
+  if (!_shownSubmissions.length) {
+    toast("No submissions to export. Apply a filter or refresh first.", "error");
+    return;
+  }
+
+  const btn = document.getElementById("btn-export-excel");
+  btn.disabled = true;
+  btn.textContent = "⏳ Building…";
+
+  try {
+    const wb = XLSX.utils.book_new();
+
+    // Group submissions by form name — each form = one Excel sheet
+    const byForm = {};
+    _shownSubmissions.forEach(function(s) {
+      const key = (s.form_name || s.template_name || s.templateId || "Unknown Form").trim();
+      if (!byForm[key]) byForm[key] = [];
+      byForm[key].push(s);
+    });
+
+    Object.keys(byForm).forEach(function(formName) {
+      const rows     = byForm[formName];
+      const allKeys  = new Set();
+
+      // Collect all dynamic field keys from values_json across all rows
+      rows.forEach(function(s) {
+        try {
+          const vals = JSON.parse(s.values_json || s.valuesJson || "{}");
+          Object.keys(vals).forEach(function(k) {
+            // Skip base64 images and GPS blobs — not useful in Excel
+            const v = String(vals[k] || "");
+            if (!v.startsWith("data:image") && !v.startsWith("Lat:")) {
+              allKeys.add(k);
+            }
+          });
+        } catch(e) {}
+      });
+
+      // Fixed columns always first
+      const fixedCols = [
+        "Submission #", "Form", "Submitted By", "Department",
+        "Date", "Status", "Latitude", "Longitude", "Accuracy (m)", "GPS"
+      ];
+
+      // Dynamic field columns after fixed
+      const dynamicCols = [...allKeys];
+      const allCols     = fixedCols.concat(dynamicCols);
+
+      // Build rows
+      const sheetData = [allCols];   // first row = headers
+
+      rows.forEach(function(s) {
+        const lat  = parseFloat(s.latitude)  || 0;
+        const lng  = parseFloat(s.longitude) || 0;
+        const mock = s.is_mock === "true" || s.is_mock === true || s.is_mock === "YES";
+        const gps  = mock ? "MOCK" : (lat || lng) ? "REAL" : "NO GPS";
+        const date = s.submitted_at
+          ? new Date(s.submitted_at).toLocaleString(undefined,
+              { day:"2-digit", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" })
+          : "";
+
+        // Parse dynamic field values
+        let vals = {};
+        try { vals = JSON.parse(s.values_json || s.valuesJson || "{}"); } catch(e) {}
+
+        const row = [
+          s.submission_number || s.sub_id || "",
+          formName,
+          s.submitted_by || s.submittedBy || "",
+          s.department_id || s.departmentId || "",
+          date,
+          s.status || "",
+          lat || "",
+          lng || "",
+          s.accuracy_m || s.locationAccuracy || "",
+          gps
+        ];
+
+        // Append dynamic field values in same order as headers
+        dynamicCols.forEach(function(col) {
+          const v = String(vals[col] || "");
+          // Replace base64 or GPS blob with placeholder
+          if (v.startsWith("data:image")) {
+            row.push("[Photo]");
+          } else if (v.startsWith("Lat:")) {
+            row.push("[GPS captured]");
+          } else {
+            row.push(v);
+          }
+        });
+
+        sheetData.push(row);
+      });
+
+      // Sanitise sheet name — Excel max 31 chars, no special chars
+      const sheetName = formName.replace(/[\\\/\?\*\[\]:]/g, "").substring(0, 31);
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+      // Auto-width columns
+      const colWidths = allCols.map(function(col, ci) {
+        let max = col.length;
+        sheetData.slice(1).forEach(function(row) {
+          const cell = String(row[ci] || "");
+          if (cell.length > max) max = cell.length;
+        });
+        return { wch: Math.min(max + 2, 50) };
+      });
+      ws["!cols"] = colWidths;
+
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    });
+
+    // File name includes org + date
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const orgName = (_org || "org").replace(/\s+/g, "_");
+    XLSX.writeFile(wb, `submissions_${orgName}_${dateStr}.xlsx`);
+
+    toast("✅ Excel file downloaded — " + Object.keys(byForm).length + " sheet(s)", "success");
+
+  } catch(err) {
+    toast("Export failed: " + err.message, "error");
+    console.error(err);
+  }
+
+  btn.disabled = false;
+  btn.textContent = "📥 Export Excel";
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ── FORMS ─────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+const FIELD_TYPES = [
+  "TEXT","MULTILINE_TEXT","NUMBER","PHONE","DATE","TIME",
+  "DROPDOWN","MULTI_CHOICE","TOGGLE","RATING",
+  "PHOTO","AUDIO","SIGNATURE","GPS"
+];
+// Types that need an options list
+const NEEDS_OPTIONS = ["DROPDOWN","MULTI_CHOICE"];
+
+function loadForms() {
+  document.getElementById("forms-list").innerHTML = '<div class="empty-state"><span class="spin"></span>Loading…</div>';
+  document.getElementById("forms-count-bar").style.display = "none";
+  clientCall("clientlistforms", {}, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    renderForms(d.forms || []);
+  });
+}
+
+function renderForms(forms) {
+  const el     = document.getElementById("forms-list");
+  const active = forms.filter(f => (f.status || "").toUpperCase() !== "DELETED");
+  document.getElementById("forms-count-bar").style.display = "block";
+  setText("forms-count-val", active.length);
+  if (!active.length) {
+    el.innerHTML = '<div class="empty-state">No forms yet. Click <b>+ New Form</b> to create your first form template.</div>';
+    return;
+  }
+  el.innerHTML = active.map(f => {
+    let fieldCount   = 0;
+    let condCount    = 0;
+    try {
+      const parsed = JSON.parse(f.fields_json || "[]");
+      fieldCount   = parsed.length;
+      condCount    = parsed.filter(function(ff) { return ff.conditionField && ff.conditionField.trim(); }).length;
+    } catch(e) {}
+    const at = (f.assigned_to || "ALL").trim();
+    const atUpper = at.toUpperCase();
+    let assigned;
+    if (atUpper === "ALL") {
+      assigned = '<span style="color:var(--green)">Everyone</span>';
+    } else if (at.toUpperCase().startsWith("DEPT:")) {
+      const deptNames = at.split(",")
+        .map(function(d) { return d.trim().startsWith("DEPT:") ? d.trim().slice(5) : d.trim(); })
+        .filter(function(d) { return d; })
+        .join(", ");
+      assigned = '<span style="color:var(--blue)">🏬 ' + esc(deptNames) + '</span>';
+    } else {
+      const userList = at.split(",").map(function(u) { return u.trim(); }).filter(function(u) { return u; });
+      assigned = '<span style="color:var(--yellow)">👤 ' + esc(userList.join(", ")) + '</span>';
+    }
+    const condBadge = condCount > 0
+      ? `<span style="color:var(--purple)">⚡ ${condCount} condition${condCount !== 1 ? "s" : ""}</span>`
+      : "";
+    return `<div class="form-card">
+      <div class="form-card-info">
+        <div class="form-card-name">📋 ${esc(f.form_name)}</div>
+        ${f.description ? `<div class="form-card-desc">${esc(f.description)}</div>` : ""}
+        <div class="form-card-meta">
+          <span>🔢 ${fieldCount} field${fieldCount !== 1 ? "s" : ""}</span>
+          ${condBadge}
+          <span>📡 Assigned to: ${assigned}</span>
+          <span>🕐 Updated: ${f.updated_at ? fmtDate(f.updated_at) : "—"}</span>
+        </div>
+      </div>
+      <div class="action-btns" style="flex-direction:column;align-items:flex-end">
+        <button class="btn btn-sm btn-ghost"  onclick="openFormBuilder('${esc(f.form_id)}')">✏️ Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="openArchiveForm('${esc(f.form_id)}','${esc(f.form_name)}')">🗑 Archive</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function openFormBuilder(formId) {
+  _editFormId = formId;
+  _formFields = [];
+  document.getElementById("fb-name").value = "";
+  document.getElementById("fb-desc").value = "";
+  document.getElementById("fields-builder-list").innerHTML = "";
+  document.getElementById("fb-no-fields").style.display = "block";
+  document.getElementById("form-builder-title").textContent = formId ? "Edit Form" : "New Form";
+
+  // Reset assign mode to ALL by default
+  _setAssignMode("ALL");
+
+  if (formId) {
+    clientCall("clientlistforms", {}, function(d) {
+      if (d.error) { toast(d.message, "error"); return; }
+      const form = (d.forms || []).find(f => f.form_id === formId);
+      if (!form) { toast("Form not found", "error"); return; }
+      document.getElementById("fb-name").value = form.form_name || "";
+      document.getElementById("fb-desc").value = form.description || "";
+
+      // Restore the correct assign mode from saved value
+      const at = (form.assigned_to || "ALL").trim();
+      if (at.toUpperCase() === "ALL") {
+        _setAssignMode("ALL");
+      } else if (at.toUpperCase().startsWith("DEPT:")) {
+        // Extract dept names: "DEPT:Health,DEPT:Education" → "Health,Education"
+        const deptVal = at.split(",")
+          .map(function(d) { return d.trim().startsWith("DEPT:") ? d.trim().slice(5) : d.trim(); })
+          .filter(function(d) { return d; })
+          .join(",");
+        _setAssignMode("DEPT", deptVal);
+      } else {
+        // Specific users: "john,mary,ahmed"
+        _setAssignMode("SPECIFIC", at);
+      }
+
+      try { _formFields = JSON.parse(form.fields_json || "[]"); } catch(e) { _formFields = []; }
+      rebuildFieldRows();
+      openModal("modal-form-builder");
+    });
+  } else {
+    openModal("modal-form-builder");
+  }
+}
+
+// Internal helper — sets the assign mode dropdown and shows/populates
+// the correct panel. preselect is the comma-separated value to tick.
+function _setAssignMode(mode, preselect) {
+  document.getElementById("assigned-to-mode").value = mode;
+  const deptWrap  = document.getElementById("assign-dept-wrap");
+  const usersWrap = document.getElementById("assign-users-wrap");
+  const hint      = document.getElementById("assign-hint");
+
+  deptWrap.style.display  = "none";
+  usersWrap.style.display = "none";
+
+  if (mode === "DEPT") {
+    deptWrap.style.display = "block";
+    hint.textContent = "Staff in the selected departments will see this form.";
+    loadDeptsIntoChecklist("fb-dept-checklist", preselect || "");
+  } else if (mode === "SPECIFIC") {
+    usersWrap.style.display = "block";
+    hint.textContent = "Only the selected staff members will see this form.";
+    _loadUsersIntoChecklist("fb-users-checklist", preselect || "");
+  } else {
+    hint.textContent = "This form will be sent to all devices in your organisation.";
+  }
+}
+
+// Load users into a checklist div — same pattern as dept checklist
+// preselect is a comma-separated string of usernames to pre-tick
+function _loadUsersIntoChecklist(divId, preselect) {
+  const wrap = document.getElementById(divId);
+  const selected = new Set(
+    (preselect || "").split(",").map(function(u) { return u.trim().toLowerCase(); }).filter(function(u) { return u; })
+  );
+  wrap.innerHTML = '<span style="color:var(--muted);font-size:12px"><span class="spin"></span>Loading users…</span>';
+  clientCall("clientlistusers", {}, function(d) {
+    if (d.error) {
+      wrap.innerHTML = '<span style="color:var(--muted);font-size:12px">Could not load users.</span>';
+      return;
+    }
+    const users = (d.users || []).filter(function(u) {
+      return (u.status || "").toUpperCase() !== "BLOCKED";
+    });
+    if (!users.length) {
+      wrap.innerHTML = '<span style="color:var(--muted);font-size:12px">No users found. Add users first.</span>';
+      return;
+    }
+    wrap.innerHTML = users.map(function(u) {
+      const checked = selected.has((u.username || "").toLowerCase()) ? "checked" : "";
+      const deptIds = u.department_ids || u.department || "";
+      const deptTag = deptIds
+        ? '<span style="font-size:10px;color:var(--muted);margin-left:6px">(' + esc(deptIds) + ')</span>'
+        : "";
+      return `<label style="display:flex;align-items:center;gap:8px;padding:5px 0;
+                cursor:pointer;font-size:13px;border-bottom:1px solid var(--border)">
+        <input type="checkbox" value="${esc(u.username)}" ${checked}
+          style="width:auto;padding:0;cursor:pointer">
+        <span>${esc(u.username)}${deptTag}</span>
+      </label>`;
+    }).join("") +
+    `<label style="display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;font-size:12px;color:var(--muted)">
+      <input type="checkbox" style="width:auto;padding:0;cursor:pointer"
+        onchange="if(this.checked){clearChecklist('${divId}');this.checked=false;}">
+      <span>— Clear all selections —</span>
+    </label>`;
+  });
+}
+
+function toggleAssignMode() {
+  const mode = document.getElementById("assigned-to-mode").value;
+  _setAssignMode(mode);
+}
+
+function addField() {
+  _formFields.push({ label: "", type: "TEXT", required: false, options: [], conditionField: "", conditionValue: "" });
+  rebuildFieldRows();
+}
+
+function updateFieldType(i, val) {
+  _formFields[i].type = val;
+  if (!NEEDS_OPTIONS.includes(val)) _formFields[i].options = [];
+  rebuildFieldRows();
+}
+
+function updateFieldOptions(i, val) {
+  _formFields[i].options = val.split("\n").map(s => s.trim()).filter(s => s.length > 0);
+}
+
+function rebuildFieldRows() {
+  const list = document.getElementById("fields-builder-list");
+  document.getElementById("fb-no-fields").style.display = _formFields.length ? "none" : "block";
+  if (!_formFields.length) { list.innerHTML = ""; return; }
+
+  list.innerHTML = _formFields.map((f, i) => {
+
+    // ── Type dropdown ──────────────────────────────────────────────
+    const typeOpts = FIELD_TYPES.map(t =>
+      `<option value="${t}" ${f.type === t ? "selected" : ""}>${t}</option>`
+    ).join("");
+
+    // ── Options textarea (for DROPDOWN / MULTI_CHOICE) ────────────
+    const needsOpts    = NEEDS_OPTIONS.includes(f.type);
+    const currentOpts  = Array.isArray(f.options) ? f.options.join("\n") : "";
+    const optionsHtml  = needsOpts ? `
+      <div style="width:100%;margin-top:8px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">
+          Options (one per line) <span style="color:var(--red)">*</span>
+        </div>
+        <textarea rows="3"
+          placeholder="Option 1&#10;Option 2&#10;Option 3"
+          style="width:100%;background:var(--bg);border:1px solid var(--border);
+                 border-radius:6px;color:var(--text);font-family:var(--sans);
+                 font-size:12px;padding:6px 10px;resize:vertical"
+          oninput="updateFieldOptions(${i}, this.value)"
+        >${esc(currentOpts)}</textarea>
+      </div>` : "";
+
+    // ── Conditional logic section ─────────────────────────────────
+    // Build dropdown of other fields that have labels
+    const otherFields = _formFields.filter((ff, j) => j !== i && (ff.label || "").trim());
+    const hasCond     = f.conditionField && f.conditionField.trim();
+
+    let conditionHtml = "";
+    if (otherFields.length === 0) {
+      // No other fields yet — show disabled hint
+      conditionHtml = `<div style="width:100%;margin-top:6px">
+        <span style="font-size:11px;color:var(--muted)">
+          ⚡ Conditional logic available once you have 2+ fields
+        </span>
+      </div>`;
+    } else if (!hasCond) {
+      // No condition set — show "Add condition" link
+      conditionHtml = `<div style="width:100%;margin-top:6px">
+        <button class="btn-add-condition" onclick="addCondition(${i})">
+          ⚡ Add condition — show only if another field equals a value
+        </button>
+      </div>`;
+    } else {
+      // Condition is set — show controls
+      const condFieldOpts = `<option value="">— pick a field —</option>` +
+        otherFields.map(ff =>
+          `<option value="${esc(ff.label)}" ${f.conditionField === ff.label ? "selected" : ""}>${esc(ff.label)}</option>`
+        ).join("");
+
+      // Value input depends on the type of the selected condition field
+      const condSourceField = _formFields.find((ff, j) => j !== i && ff.label === f.conditionField);
+      let condValueHtml;
+      if (condSourceField && condSourceField.type === "TOGGLE") {
+        condValueHtml = `<select onchange="_formFields[${i}].conditionValue=this.value">
+          <option value="yes" ${f.conditionValue === "yes" ? "selected" : ""}>yes</option>
+          <option value="no"  ${f.conditionValue === "no"  ? "selected" : ""}>no</option>
+        </select>`;
+      } else if (condSourceField && NEEDS_OPTIONS.includes(condSourceField.type) && (condSourceField.options || []).length) {
+        const valOpts = condSourceField.options.map(o =>
+          `<option value="${esc(o)}" ${f.conditionValue === o ? "selected" : ""}>${esc(o)}</option>`
+        ).join("");
+        condValueHtml = `<select onchange="_formFields[${i}].conditionValue=this.value">
+          <option value="">— any value —</option>${valOpts}
+        </select>`;
+      } else {
+        condValueHtml = `<input type="text" style="width:120px"
+          placeholder="e.g. yes"
+          value="${esc(f.conditionValue || "")}"
+          oninput="_formFields[${i}].conditionValue=this.value">`;
+      }
+
+      conditionHtml = `<div class="condition-row">
+        <span class="condition-label">⚡ Show only if:</span>
+        <select onchange="updateConditionField(${i}, this.value)">${condFieldOpts}</select>
+        <span class="condition-eq">=</span>
+        ${condValueHtml}
+        <button class="btn-remove-condition" onclick="removeCondition(${i})" title="Remove this condition">✕ Remove</button>
+      </div>`;
+    }
+
+    return `<div class="field-builder-row" id="field-row-${i}" style="flex-wrap:wrap">
+      <span style="font-size:11px;color:var(--muted);min-width:22px;text-align:right">${i+1}.</span>
+      <input class="field-label-input" type="text"
+        placeholder="Field label e.g. Beneficiary Name"
+        value="${esc(f.label)}"
+        oninput="_formFields[${i}].label=this.value" maxlength="80">
+      <select class="field-type-select" onchange="updateFieldType(${i}, this.value)">${typeOpts}</select>
+      <label class="field-req-wrap">
+        <input type="checkbox" ${f.required ? "checked" : ""}
+          onchange="_formFields[${i}].required=this.checked"> Required
+      </label>
+      <button class="btn-remove-field" onclick="removeField(${i})" title="Remove field">✕</button>
+      ${optionsHtml}
+      ${conditionHtml}
+    </div>`;
+  }).join("");
+}
+
+function removeField(idx) {
+  // When a field is removed, clear any conditions that reference it
+  const removedLabel = (_formFields[idx] || {}).label || "";
+  _formFields.splice(idx, 1);
+  if (removedLabel) {
+    _formFields.forEach(function(f) {
+      if (f.conditionField === removedLabel) {
+        f.conditionField  = "";
+        f.conditionValue  = "";
+      }
+    });
+  }
+  rebuildFieldRows();
+}
+
+// ── Conditional logic helpers ──────────────────────────────────────
+function addCondition(i) {
+  // Auto-select the first other field that has a label
+  const first = _formFields.find(function(ff, j) { return j !== i && (ff.label || "").trim(); });
+  _formFields[i].conditionField = first ? first.label : "";
+  // Auto-pick a sensible default value
+  if (first && first.type === "TOGGLE") {
+    _formFields[i].conditionValue = "yes";
+  } else if (first && NEEDS_OPTIONS.includes(first.type) && (first.options || []).length) {
+    _formFields[i].conditionValue = first.options[0];
+  } else {
+    _formFields[i].conditionValue = "";
+  }
+  rebuildFieldRows();
+}
+
+function removeCondition(i) {
+  _formFields[i].conditionField = "";
+  _formFields[i].conditionValue = "";
+  rebuildFieldRows();
+}
+
+function updateConditionField(i, newFieldLabel) {
+  _formFields[i].conditionField = newFieldLabel;
+  // Reset value to a sensible default for the newly selected field
+  const src = _formFields.find(function(ff, j) { return j !== i && ff.label === newFieldLabel; });
+  if (src && src.type === "TOGGLE") {
+    _formFields[i].conditionValue = "yes";
+  } else if (src && NEEDS_OPTIONS.includes(src.type) && (src.options || []).length) {
+    _formFields[i].conditionValue = src.options[0];
+  } else {
+    _formFields[i].conditionValue = "";
+  }
+  rebuildFieldRows();
+}
+
+function doPublishForm() {
+  const name = document.getElementById("fb-name").value.trim();
+  if (!name) { toast("Form name is required", "error"); return; }
+  if (!_formFields.length) { toast("Add at least one field", "error"); return; }
+  for (let i = 0; i < _formFields.length; i++) {
+    if (!_formFields[i].label.trim()) {
+      toast("Field " + (i + 1) + " is missing a label", "error"); return;
+    }
+    if (NEEDS_OPTIONS.includes(_formFields[i].type)) {
+      const opts = _formFields[i].options || [];
+      if (!opts.length) {
+        toast("Field " + (i + 1) + " (" + _formFields[i].type + ") needs at least one option", "error"); return;
+      }
+    }
+  }
+
+  // Build assigned_to value based on selected mode
+  const mode = document.getElementById("assigned-to-mode").value;
+  let assignedTo = "ALL";
+
+  if (mode === "DEPT") {
+    const deptVal = getChecklistValue("fb-dept-checklist");
+    if (!deptVal) { toast("Select at least one department", "error"); return; }
+    // Store as DEPT:Health,DEPT:Education
+    assignedTo = deptVal.split(",")
+      .map(function(d) { return "DEPT:" + d.trim(); })
+      .filter(function(d) { return d !== "DEPT:"; })
+      .join(",");
+  } else if (mode === "SPECIFIC") {
+    const userVal = getChecklistValue("fb-users-checklist");
+    if (!userVal) { toast("Select at least one user", "error"); return; }
+    assignedTo = userVal; // already comma-separated usernames
+  }
+
+  const params = {
+    form_name:   name,
+    description: document.getElementById("fb-desc").value.trim(),
+    fields_json: JSON.stringify(_formFields.map(function(f) {
+      // Clean up: only include conditionField/conditionValue if actually set
+      const clean = {
+        label:    f.label,
+        type:     f.type,
+        required: f.required,
+        options:  f.options || []
+      };
+      if (f.conditionField && f.conditionField.trim()) {
+        clean.conditionField = f.conditionField.trim();
+        clean.conditionValue = (f.conditionValue || "").trim();
+      }
+      return clean;
+    })),
+    assigned_to: assignedTo
+  };
+  if (_editFormId) params.form_id = _editFormId;
+  toast("Saving…", "info");
+  clientCall("clientpublishform", params, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast(d.action === "updated" ? "Form updated ✓" : "Form published ✓", "success");
+    closeModal("modal-form-builder");
+    loadForms();
+  });
+}
+
+function openArchiveForm(formId, formName) {
+  _archiveFormId   = formId;
+  _archiveFormName = formName;
+  document.getElementById("archive-form-name").textContent = formName;
+  openModal("modal-archive-form");
+}
+function doArchiveForm() {
+  clientCall("clientarchiveform", { form_id: _archiveFormId }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    toast("Form archived", "info");
+    closeModal("modal-archive-form");
+    loadForms();
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ── EXCEL IMPORT ──────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+
+let _importMode      = "template"; // "template" | "ai"
+let _importWorkbook  = null;        // parsed XLSX workbook
+let _importedFields  = [];          // field array ready to load into builder
+let _aiKeyIsSet      = false;       // cached from last AI status check
+
+// ── Template column definitions ──────────────────────────────────
+// These match the headers in the downloadable blank template.
+const TMPL_COL_NAME    = "field_name";
+const TMPL_COL_TYPE    = "field_type";
+const TMPL_COL_REQ     = "required";
+const TMPL_COL_OPTIONS = "options";
+const TMPL_COL_HINT    = "hint";
+const TMPL_COL_SECTION = "section";
+
+// ── Type mapping: common words → app field types ──────────────────
+const TYPE_MAP = {
+  "text":           "TEXT",
+  "short text":     "TEXT",
+  "string":         "TEXT",
+  "multiline":      "MULTILINE_TEXT",
+  "multiline_text": "MULTILINE_TEXT",
+  "multi line":     "MULTILINE_TEXT",
+  "long text":      "MULTILINE_TEXT",
+  "paragraph":      "MULTILINE_TEXT",
+  "textarea":       "MULTILINE_TEXT",
+  "number":         "NUMBER",
+  "numeric":        "NUMBER",
+  "integer":        "NUMBER",
+  "decimal":        "NUMBER",
+  "phone":          "PHONE",
+  "mobile":         "PHONE",
+  "telephone":      "PHONE",
+  "date":           "DATE",
+  "time":           "TIME",
+  "dropdown":       "DROPDOWN",
+  "select":         "DROPDOWN",
+  "choice":         "DROPDOWN",
+  "single choice":  "DROPDOWN",
+  "list":           "DROPDOWN",
+  "multi":          "MULTI_CHOICE",
+  "multi_choice":   "MULTI_CHOICE",
+  "multi choice":   "MULTI_CHOICE",
+  "multiple choice":"MULTI_CHOICE",
+  "checkbox":       "MULTI_CHOICE",
+  "checkboxes":     "MULTI_CHOICE",
+  "toggle":         "TOGGLE",
+  "yes/no":         "TOGGLE",
+  "yes no":         "TOGGLE",
+  "boolean":        "TOGGLE",
+  "rating":         "RATING",
+  "stars":          "RATING",
+  "score":          "RATING",
+  "photo":          "PHOTO",
+  "image":          "PHOTO",
+  "picture":        "PHOTO",
+  "camera":         "PHOTO",
+  "audio":          "AUDIO",
+  "voice":          "AUDIO",
+  "recording":      "AUDIO",
+  "signature":      "SIGNATURE",
+  "sign":           "SIGNATURE",
+  "gps":            "GPS",
+  "location":       "GPS",
+  "coordinates":    "GPS",
+  "map":            "GPS"
+};
+
+function normaliseType_(raw) {
+  if (!raw) return "TEXT";
+  const lower = String(raw).toLowerCase().trim();
+  return TYPE_MAP[lower] || (FIELD_TYPES.indexOf(raw.toUpperCase().trim()) >= 0
+    ? raw.toUpperCase().trim() : "TEXT");
+}
+
+// ── Open import modal ─────────────────────────────────────────────
+function openImportModal() {
+  _importWorkbook = null;
+  _importMode = "template";
+  document.getElementById("import-file-input").value = "";
+  document.getElementById("import-file-name").textContent = "";
+  document.getElementById("import-error").style.display = "none";
+  document.getElementById("import-ai-warning").style.display = "none";
+  selectImportMode("template");
+  // Check AI key status silently
+  clientCall("clientgetaikeystatus", {}, function(d) {
+    _aiKeyIsSet = !d.error && (d.saved === true || d.keySet === true);
+    const aiBtn = document.getElementById("mode-btn-ai");
+    const aiSub = document.getElementById("ai-mode-sub");
+    if (!_aiKeyIsSet) {
+      aiBtn.disabled = true;
+      aiSub.textContent = "⚠️ No Gemini key saved. Go to 🤖 AI Settings to add one first.";
+    } else {
+      aiBtn.disabled = false;
+      aiSub.textContent = "AI reads your existing form and detects fields automatically.";
+    }
+  });
+  openModal("modal-import-excel");
+}
+
+function selectImportMode(mode) {
+  _importMode = mode;
+  document.getElementById("mode-btn-template").classList.toggle("selected", mode === "template");
+  document.getElementById("mode-btn-ai").classList.toggle("selected",       mode === "ai");
+  document.getElementById("import-ai-warning").style.display =
+    (mode === "ai" && !_aiKeyIsSet) ? "block" : "none";
+  document.getElementById("import-error").style.display = "none";
+}
+
+function onImportFileSelected(input) {
+  const file = input.files && input.files[0];
+  document.getElementById("import-file-name").textContent =
+    file ? "✅  " + file.name + "  (" + (file.size / 1024).toFixed(1) + " KB)" : "";
+  document.getElementById("import-error").style.display = "none";
+  _importWorkbook = null; // reset — will re-parse on preview
+}
+
+// ── Download blank template ───────────────────────────────────────
+function downloadFormTemplate() {
+  const wb = XLSX.utils.book_new();
+
+  // Instructions sheet
+  const instrData = [
+    ["NGO Report App — Form Import Template"],
+    [""],
+    ["HOW TO USE THIS TEMPLATE"],
+    ["1. Fill in the 'Form Fields' sheet below — one row per field."],
+    ["2. Delete these instruction rows before saving (or just leave them — they are ignored)."],
+    ["3. Save the file and upload it in the Client Panel → Forms → Import from Excel."],
+    [""],
+    ["COLUMN GUIDE"],
+    ["field_name  : The question label shown to staff (e.g. 'Beneficiary Name'). REQUIRED."],
+    ["field_type  : One of: TEXT, MULTILINE_TEXT, NUMBER, PHONE, DATE, TIME, DROPDOWN, MULTI_CHOICE, TOGGLE, RATING, PHOTO, AUDIO, SIGNATURE, GPS"],
+    ["required    : yes or no"],
+    ["options     : For DROPDOWN and MULTI_CHOICE only. Separate options with a comma. Example:  Male,Female,Prefer not to say"],
+    ["section     : Optional group heading shown above this field (e.g. 'Personal Info')"],
+    ["hint        : Optional helper text shown below the field to guide staff"]
+  ];
+  const instrWs = XLSX.utils.aoa_to_sheet(instrData);
+  instrWs["!cols"] = [{ wch: 100 }];
+  XLSX.utils.book_append_sheet(wb, instrWs, "Instructions");
+
+  // Form Fields sheet — headers + 3 sample rows
+  const headers = ["field_name", "field_type", "required", "options", "section", "hint"];
+  const samples = [
+    ["Beneficiary Name",    "TEXT",         "yes", "",                          "Personal Info", "Enter full legal name"],
+    ["Gender",              "DROPDOWN",     "yes", "Male,Female,Prefer not to say", "Personal Info", ""],
+    ["Date of Birth",       "DATE",         "no",  "",                          "Personal Info", ""],
+    ["Has Children",        "TOGGLE",       "no",  "",                          "Family",        ""],
+    ["Number of Children",  "NUMBER",       "no",  "",                          "Family",        "Only if Has Children = yes"],
+    ["District",            "DROPDOWN",     "yes", "Lahore,Karachi,Peshawar,Quetta", "Location", ""],
+    ["GPS Location",        "GPS",          "yes", "",                          "Location",      "Tap to capture current location"],
+    ["Photo Evidence",      "PHOTO",        "no",  "",                          "Evidence",      "Take or upload a photo"],
+    ["Signature",           "SIGNATURE",    "no",  "",                          "Evidence",      "Sign to confirm accuracy"],
+    ["Additional Notes",    "MULTILINE_TEXT","no", "",                          "",              "Any other relevant information"]
+  ];
+  const fieldData = [headers, ...samples];
+  const fieldsWs  = XLSX.utils.aoa_to_sheet(fieldData);
+  // Style the header row wider
+  fieldsWs["!cols"] = [
+    { wch: 30 }, // field_name
+    { wch: 16 }, // field_type
+    { wch: 9  }, // required
+    { wch: 40 }, // options
+    { wch: 18 }, // section
+    { wch: 40 }  // hint
+  ];
+  XLSX.utils.book_append_sheet(wb, fieldsWs, "Form Fields");
+
+  XLSX.writeFile(wb, "NGO_Form_Template.xlsx");
+  toast("Template downloaded ✓ — fill it in and upload it here", "success");
+}
+
+// ── Preview import ────────────────────────────────────────────────
+function doPreviewImport() {
+  const errEl   = document.getElementById("import-error");
+  const fileInp = document.getElementById("import-file-input");
+  errEl.style.display = "none";
+
+  const file = fileInp.files && fileInp.files[0];
+  if (!file) {
+    errEl.textContent = "Please choose an Excel file (.xlsx) first.";
+    errEl.style.display = "block";
+    return;
+  }
+
+  if (_importMode === "ai" && !_aiKeyIsSet) {
+    errEl.textContent = "AI import requires a Gemini API key. Add one in 🤖 AI Settings first.";
+    errEl.style.display = "block";
+    return;
+  }
+
+  const btn = document.getElementById("btn-do-preview");
+  btn.disabled    = true;
+  btn.textContent = "⏳ Reading file…";
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const wb   = XLSX.read(data, { type: "array" });
+      _importWorkbook = wb;
+
+      if (_importMode === "template") {
+        const fields = parseTemplateExcel_(wb);
+        if (!fields || fields.length === 0) {
+          errEl.textContent =
+            "No fields found. Make sure you are using the NGO Form Template and the " +
+            "sheet is named 'Form Fields' with the correct column headers.";
+          errEl.style.display = "block";
+          btn.disabled    = false;
+          btn.textContent = "🔍 Preview Fields";
+          return;
+        }
+        btn.disabled    = false;
+        btn.textContent = "🔍 Preview Fields";
+        showImportPreview_(fields, "template");
+      } else {
+        // AI mode — extract text content and send to Gemini
+        btn.textContent = "⏳ Asking AI…";
+        const textContent = extractExcelText_(wb);
+        callAiImport_(textContent, function(fields, aiErr) {
+          btn.disabled    = false;
+          btn.textContent = "🔍 Preview Fields";
+          if (aiErr) {
+            errEl.textContent = "AI error: " + aiErr +
+              ". Try the Template Format instead, or check your Gemini key in AI Settings.";
+            errEl.style.display = "block";
+            return;
+          }
+          if (!fields || fields.length === 0) {
+            errEl.textContent =
+              "AI could not detect any form fields from this file. " +
+              "Try the Template Format instead for best results.";
+            errEl.style.display = "block";
+            return;
+          }
+          showImportPreview_(fields, "ai");
+        });
+      }
+    } catch(ex) {
+      btn.disabled    = false;
+      btn.textContent = "🔍 Preview Fields";
+      errEl.textContent = "Could not read the file: " + ex.message +
+        ". Make sure it is a valid .xlsx Excel file.";
+      errEl.style.display = "block";
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── Parse our standard template format ───────────────────────────
+function parseTemplateExcel_(wb) {
+  // Try "Form Fields" sheet first, then first sheet
+  let sheetName = "Form Fields";
+  if (!wb.Sheets[sheetName]) {
+    sheetName = wb.SheetNames[0];
+  }
+  const ws   = wb.Sheets[sheetName];
+  if (!ws) return [];
+  const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+
+  const fields = [];
+  rows.forEach(function(row) {
+    // Normalise keys to lowercase for flexible column matching
+    const normRow = {};
+    Object.keys(row).forEach(function(k) {
+      normRow[k.toLowerCase().trim().replace(/\s+/g, "_")] = row[k];
+    });
+
+    const name = String(normRow["field_name"] || normRow["name"] || normRow["label"] || normRow["question"] || "").trim();
+    if (!name) return; // skip blank rows and instruction rows
+
+    const rawType = String(normRow["field_type"] || normRow["type"] || "TEXT").trim();
+    const type    = normaliseType_(rawType);
+    const req     = String(normRow["required"] || "no").toLowerCase().trim();
+    const required = req === "yes" || req === "true" || req === "1";
+    const optRaw  = String(normRow["options"] || "").trim();
+    const options = optRaw
+      ? optRaw.split(",").map(function(o) { return o.trim(); }).filter(function(o) { return o; })
+      : [];
+    const hint    = String(normRow["hint"] || normRow["helper"] || normRow["description"] || "").trim();
+    const section = String(normRow["section"] || normRow["group"] || normRow["category"] || "").trim();
+
+    const field = { label: name, type: type, required: required, options: options };
+    if (hint)    field.hint    = hint;
+    if (section) field.section = section;
+    fields.push(field);
+  });
+  return fields;
+}
+
+// ── Extract readable text from any Excel for AI ───────────────────
+function extractExcelText_(wb) {
+  const lines = [];
+  wb.SheetNames.forEach(function(name) {
+    lines.push("=== Sheet: " + name + " ===");
+    const ws   = wb.Sheets[name];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+    // Cap at 80 rows to stay within Gemini token limits
+    const maxRows = Math.min(rows.length, 80);
+    for (let i = 0; i < maxRows; i++) {
+      const rowText = rows[i].map(function(c) { return String(c || "").trim(); })
+                             .filter(function(c) { return c; }).join(" | ");
+      if (rowText) lines.push(rowText);
+    }
+  });
+  return lines.join("\n");
+}
+
+// ── Call GAS aiProxy with structured prompt ───────────────────────
+function callAiImport_(excelText, callback) {
+  const validTypes = FIELD_TYPES.join(", ");
+  const prompt =
+    "You are a form builder assistant. I will give you the raw text content of an Excel " +
+    "spreadsheet that is a data collection form. Your job is to identify all the form fields " +
+    "and return them as a JSON array.\n\n" +
+    "RULES:\n" +
+    "1. Each item in the array must have these keys: label, type, required, options\n" +
+    "2. 'label' is the question text shown to the user\n" +
+    "3. 'type' must be EXACTLY one of: " + validTypes + "\n" +
+    "4. 'required' is true or false (boolean)\n" +
+    "5. 'options' is an array of strings (only for DROPDOWN and MULTI_CHOICE, otherwise [])\n" +
+    "6. Skip column headers, page numbers, instructions, notes, and blank rows\n" +
+    "7. If a field has checkboxes or pick-lists, use DROPDOWN or MULTI_CHOICE and put the choices in options\n" +
+    "8. Return ONLY the JSON array — no explanation, no markdown code fences, no extra text\n\n" +
+    "EXCEL CONTENT:\n" + excelText;
+
+  clientCall("aiproxy", { prompt: prompt }, function(d) {
+    if (d.error) { callback(null, d.message); return; }
+    const raw = (d.result || "").trim();
+    // Strip any accidental markdown fences
+    const clean = raw.replace(/^```[a-z]*\n?/i, "").replace(/\n?```$/i, "").trim();
+    try {
+      const arr = JSON.parse(clean);
+      if (!Array.isArray(arr)) { callback(null, "AI returned unexpected format"); return; }
+      // Sanitise every field
+      const fields = arr.map(function(f) {
+        const type = normaliseType_(f.type || "TEXT");
+        const opts = Array.isArray(f.options) ? f.options.map(String) : [];
+        return {
+          label:    String(f.label || f.name || f.question || "").trim(),
+          type:     type,
+          required: f.required === true || f.required === "true" || f.required === 1,
+          options:  opts
+        };
+      }).filter(function(f) { return f.label; });
+      callback(fields, null);
+    } catch(ex) {
+      callback(null, "Could not parse AI response: " + ex.message);
+    }
+  });
+}
+
+// ── Show import preview modal ─────────────────────────────────────
+function showImportPreview_(fields, source) {
+  _importedFields = fields;
+
+  const warnEl = document.getElementById("import-preview-warning");
+  const sumEl  = document.getElementById("import-preview-summary");
+
+  // Summary line
+  let sourceLabel = source === "ai" ? "🤖 AI import" : "📄 Template import";
+  sumEl.innerHTML =
+    "<b>" + fields.length + " fields</b> detected via " + sourceLabel + ". " +
+    "Review below then click <b>Load into Form Builder</b> to continue.";
+
+  // Warnings
+  const skipped = fields.filter(function(f) { return !f.label; }).length;
+  const noOpts  = fields.filter(function(f) {
+    return (f.type === "DROPDOWN" || f.type === "MULTI_CHOICE") && (!f.options || !f.options.length);
+  });
+  let warnings = [];
+  if (skipped > 0)     warnings.push(skipped + " field(s) with blank labels were skipped.");
+  if (noOpts.length)   warnings.push(noOpts.length + " DROPDOWN/MULTI_CHOICE field(s) have no options — add them in the form builder.");
+  if (source === "ai") warnings.push("AI detection may not be 100% accurate — review all fields and types carefully before publishing.");
+  if (warnings.length) {
+    warnEl.innerHTML = "⚠️ " + warnings.join("<br>⚠️ ");
+    warnEl.style.display = "block";
+  } else {
+    warnEl.style.display = "none";
+  }
+
+  // Table rows
+  const tbody = document.getElementById("import-preview-body");
+  tbody.innerHTML = fields.map(function(f, i) {
+    const optDisplay = (f.options && f.options.length)
+      ? f.options.slice(0, 4).join(", ") + (f.options.length > 4 ? " …+" + (f.options.length - 4) : "")
+      : (f.hint || "—");
+    return "<tr>" +
+      "<td style='color:var(--muted);text-align:center'>" + (i + 1) + "</td>" +
+      "<td style='font-weight:600'>" + esc(f.label) + (f.section ? "<br><span style='font-size:10px;color:var(--muted)'>" + esc(f.section) + "</span>" : "") + "</td>" +
+      "<td><span class='type-badge'>" + esc(f.type) + "</span></td>" +
+      "<td class='" + (f.required ? "req-yes" : "req-no") + "'>" + (f.required ? "Yes" : "No") + "</td>" +
+      "<td style='font-size:11px;color:var(--muted)'>" + esc(optDisplay) + "</td>" +
+      "</tr>";
+  }).join("");
+
+  closeModal("modal-import-excel");
+  openModal("modal-import-preview");
+}
+
+// ── Load imported fields into form builder ────────────────────────
+function doLoadIntoBuilder() {
+  if (!_importedFields || !_importedFields.length) {
+    toast("No fields to load", "error"); return;
+  }
+  // Strip non-builder properties (section, hint — not in current field structure)
+  _formFields = _importedFields.map(function(f) {
+    return {
+      label:    f.label,
+      type:     f.type,
+      required: f.required,
+      options:  f.options || []
+    };
+  });
+  closeModal("modal-import-preview");
+  // Reset and open form builder
+  document.getElementById("fb-name").value = "";
+  document.getElementById("fb-desc").value = "";
+  document.getElementById("form-builder-title").textContent = "New Form (Imported)";
+  _editFormId = null;
+  _setAssignMode("ALL");
+  rebuildFieldRows();
+  document.getElementById("fb-no-fields").style.display = _formFields.length ? "none" : "block";
+  openModal("modal-form-builder");
+  toast(_formFields.length + " fields loaded — add a form name and click Publish", "info");
+}
+
+// ── GENERATE QR CODE ──────────────────────────────────────────────
+let _qrInstance = null;
+
+function openGenerateQr(username) {
+  const orgName = _orgData.org  || _org;
+  const orgId   = _orgData.orgId || "";
+
+  document.getElementById("qr-username-label").textContent = username;
+  document.getElementById("qr-org-label").textContent      = orgName;
+
+  // Build the JSON payload the app expects
+  const payload = JSON.stringify({ org: orgName, orgId: orgId, username: username });
+
+  // Clear previous QR
+  const wrap = document.getElementById("qr-code-div");
+  wrap.innerHTML = "";
+  _qrInstance = null;
+
+  // Generate new QR using QRCode.js
+  try {
+    _qrInstance = new QRCode(wrap, {
+      text:         payload,
+      width:        220,
+      height:       220,
+      colorDark:    "#000000",
+      colorLight:   "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } catch(e) {
+    wrap.innerHTML = '<p style="color:var(--red);font-size:12px;text-align:center">QR generation failed. Please refresh and try again.</p>';
+  }
+
+  openModal("modal-generate-qr");
+}
+
+function downloadQr() {
+  const wrap = document.getElementById("qr-code-div");
+  const img  = wrap.querySelector("img");
+  const canvas = wrap.querySelector("canvas");
+  let dataUrl = "";
+
+  if (canvas) {
+    dataUrl = canvas.toDataURL("image/png");
+  } else if (img) {
+    // QRCode.js falls back to img on some browsers — draw onto a canvas to download
+    const c = document.createElement("canvas");
+    c.width = img.width || 220; c.height = img.height || 220;
+    c.getContext("2d").drawImage(img, 0, 0);
+    dataUrl = c.toDataURL("image/png");
+  }
+
+  if (!dataUrl) { toast("Could not generate download — try right-clicking the QR image instead", "error"); return; }
+
+  const username = document.getElementById("qr-username-label").textContent || "staff";
+  const a = document.createElement("a");
+  a.href     = dataUrl;
+  a.download = "QR_" + username + ".png";
+  a.click();
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ── AI KEY MANAGEMENT ─────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════
+
+function setAiStatusBar(msg, type) {
+  const bar = document.getElementById("ai-status-bar");
+  bar.style.display = "block";
+  bar.textContent   = msg;
+  if (type === "ok") {
+    bar.style.background   = "var(--green-dim)";
+    bar.style.color        = "var(--green)";
+    bar.style.borderColor  = "var(--green)";
+  } else if (type === "error") {
+    bar.style.background   = "var(--red-dim)";
+    bar.style.color        = "var(--red)";
+    bar.style.borderColor  = "var(--red)";
+  } else {
+    bar.style.background   = "var(--blue-dim)";
+    bar.style.color        = "var(--blue)";
+    bar.style.borderColor  = "var(--blue)";
+  }
+}
+
+function toggleAiKeyVisibility() {
+  const input = document.getElementById("ai-key-input");
+  input.type  = input.type === "password" ? "text" : "password";
+}
+
+function loadAiKeyStatus() {
+  setAiStatusBar("🔄 Checking key status…", "info");
+  clientCall("clientgetaikeystatus", {}, function(d) {
+    if (d.error) {
+      setAiStatusBar("⚠️ Could not check key status: " + d.message, "error");
+      return;
+    }
+    if (d.keySet) {
+      setAiStatusBar("✅ A Gemini API key is currently saved for your organisation. AI is active.", "ok");
+    } else {
+      setAiStatusBar("⚠️ No Gemini API key saved yet. AI features are disabled for your staff.", "error");
+    }
+  });
+}
+
+function doSaveAiKey() {
+  const key = document.getElementById("ai-key-input").value.trim();
+  if (!key) { toast("Paste your Gemini API key first", "error"); return; }
+  if (key.length < 10) { toast("That key looks too short — check it and try again", "error"); return; }
+  setAiStatusBar("🔄 Saving key…", "info");
+  clientCall("clientsaveaikey", { apikey: key }, function(d) {
+    if (d.error) {
+      setAiStatusBar("❌ " + d.message, "error");
+      toast(d.message, "error");
+      return;
+    }
+    document.getElementById("ai-key-input").value = "";
+    setAiStatusBar("✅ Key saved. AI is now active for all staff in your organisation.", "ok");
+    toast("AI key saved ✓", "success");
+  });
+}
+
+function doCheckAiKeyStatus() {
+  loadAiKeyStatus();
+}
+
+function doDeleteAiKey() {
+  if (!confirm(
+    "Remove the Gemini API key for " + (_orgData.org || _org) + "?\n\n" +
+    "This will immediately disable AI features for all your staff."
+  )) return;
+  setAiStatusBar("🔄 Removing key…", "info");
+  clientCall("clientdeleteaikey", {}, function(d) {
+    if (d.error) {
+      setAiStatusBar("❌ " + d.message, "error");
+      toast(d.message, "error");
+      return;
+    }
+    setAiStatusBar("⚠️ Key removed. AI features are now disabled for your staff.", "error");
+    toast("AI key removed", "info");
+  });
+}
+
+// ── HELPERS ────────────────────────────────────────────────────────
+function showTab(name, btn) {
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("tab-" + name).classList.add("active");
+  btn.classList.add("active");
+  if (name === "devices")     loadDevices();
+  if (name === "departments") loadDepts();
+  if (name === "submissions") loadSubmissions();
+  if (name === "forms")       loadForms();
+  if (name === "aisettings")  loadAiKeyStatus();
+}
+
+function openModal(id)  { document.getElementById(id).classList.add("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+function esc(s) {
+  return String(s || "")
+    .replace(/&/g,"&amp;").replace(/"/g,"&quot;")
+    .replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function fmtDate(str) {
+  try { return new Date(str).toLocaleDateString(undefined, { day:"2-digit", month:"short", year:"numeric" }); }
+  catch(e) { return str; }
+}
+function setTableLoading(tbodyId, cols) {
+  document.getElementById(tbodyId).innerHTML =
+    `<tr class="loading-row"><td colspan="${cols}"><span class="spin"></span>Loading…</td></tr>`;
+}
+
+let _toastTimer;
+function toast(msg, type) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "show " + (type || "info");
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove("show"), 3200);
+}
+
+document.querySelectorAll(".modal-overlay").forEach(el => {
+  el.addEventListener("click", function(e) {
+    if (e.target === this) this.classList.remove("open");
+  });
+});
+
+document.getElementById("login-pw").addEventListener("keydown", e => {
+  if (e.key === "Enter") signIn();
+});
+
+// ══════════════════════════════════════════════════════════════════
+// ── LANGUAGE SWITCHER — Step 28 ────────────────────────────────
+// 12 languages: saves to localStorage, applies on load
+// ══════════════════════════════════════════════════════════════════
+
+const PANEL_LANGUAGES = [
+  { code: "en",  name: "English",                  dir: "ltr" },
+  { code: "ur",  name: "اردو (Urdu)",              dir: "rtl" },
+  { code: "ps",  name: "پښتو (Pashto)",            dir: "rtl" },
+  { code: "sd",  name: "سنڌي (Sindhi)",            dir: "rtl" },
+  { code: "skr", name: "سرائیکی (Saraiki)",        dir: "rtl" },
+  { code: "bn",  name: "বাংলা (Bengali)",          dir: "ltr" },
+  { code: "fr",  name: "Français (French)",         dir: "ltr" },
+  { code: "nl",  name: "Nederlands (Dutch)",        dir: "ltr" },
+  { code: "hi",  name: "हिन्दी (Hindi)",           dir: "ltr" },
+  { code: "ar",  name: "العربية (Arabic)",          dir: "rtl" },
+  { code: "sw",  name: "Kiswahili (Swahili)",       dir: "ltr" },
+  { code: "pt",  name: "Português (Portuguese)",    dir: "ltr" }
+];
+
+// ── Panel UI translations ──────────────────────────────────────────
+// Each key maps to an object of { elementId: translatedText }
+const PANEL_TRANSLATIONS = {
+  en: {
+    "login-title":      "Organisation Portal",
+    "login-sub":        "NGO Report App · Manage your organisation's users and account details.",
+    "login-org-label":  "Organisation Name",
+    "login-pw-label":   "Password",
+    "btn-signin-text":  "Sign In",
+    "login-hint":       "Don't have a password? Contact your app developer.",
+    "header-logo":      "📋 NGO Report App",
+    "btn-signout-text": "Sign Out",
+    "tab-users-text":   "👥 Users",
+    "tab-depts-text":   "🏬 Departments",
+    "tab-devices-text": "📱 Devices",
+    "tab-broadcast-text":"📢 Broadcast",
+    "tab-subs-text":    "📍 Submissions",
+    "tab-forms-text":   "📋 Forms",
+    "tab-org-text":     "🏢 Org Details",
+    "tab-ai-text":      "🤖 AI Settings",
+    "tab-pw-text":      "🔒 Change Password"
+  },
+  ur: {
+    "login-title":      "تنظیم پورٹل",
+    "login-sub":        "NGO رپورٹ ایپ · اپنی تنظیم کے صارفین اور اکاؤنٹ کی تفصیلات منظم کریں۔",
+    "login-org-label":  "تنظیم کا نام",
+    "login-pw-label":   "پاسورڈ",
+    "btn-signin-text":  "سائن اِن",
+    "login-hint":       "پاسورڈ نہیں ہے؟ ایپ ڈیولپر سے رابطہ کریں۔",
+    "header-logo":      "📋 NGO رپورٹ ایپ",
+    "btn-signout-text": "سائن آؤٹ",
+    "tab-users-text":   "👥 صارفین",
+    "tab-depts-text":   "🏬 شعبے",
+    "tab-devices-text": "📱 ڈیوائسز",
+    "tab-broadcast-text":"📢 نشریات",
+    "tab-subs-text":    "📍 جمع کرائی گئی رپورٹیں",
+    "tab-forms-text":   "📋 فارم",
+    "tab-org-text":     "🏢 تنظیم کی تفصیلات",
+    "tab-ai-text":      "🤖 AI سیٹنگز",
+    "tab-pw-text":      "🔒 پاسورڈ تبدیل کریں"
+  },
+  ps: {
+    "login-title":      "د سازمان پورټل",
+    "login-sub":        "د NGO راپور اپ · د خپلې ادارې کاروونکي او حساب اداره کړئ۔",
+    "login-org-label":  "د سازمان نوم",
+    "login-pw-label":   "پاسورډ",
+    "btn-signin-text":  "ننوتل",
+    "login-hint":       "پاسورډ نه لرئ؟ د اپ پراختیا کوونکي سره اړیکه ونیسئ۔",
+    "header-logo":      "📋 د NGO راپور اپ",
+    "btn-signout-text": "وتل",
+    "tab-users-text":   "👥 کاروونکي",
+    "tab-depts-text":   "🏬 څانګې",
+    "tab-devices-text": "📱 وسایل",
+    "tab-broadcast-text":"📢 خپرونه",
+    "tab-subs-text":    "📍 سپارل شوي راپورونه",
+    "tab-forms-text":   "📋 فارمونه",
+    "tab-org-text":     "🏢 د سازمان توضیحات",
+    "tab-ai-text":      "🤖 AI ترتیبات",
+    "tab-pw-text":      "🔒 پاسورډ بدلول"
+  },
+  sd: {
+    "login-title":      "تنظيم پورٽل",
+    "login-sub":        "NGO رپورٽ ايپ · پنهنجي تنظيم جا يوزر ۽ اڪائونٽ تفصيل منظم ڪريو۔",
+    "login-org-label":  "تنظيم جو نالو",
+    "login-pw-label":   "پاسورڊ",
+    "btn-signin-text":  "سائن اِن",
+    "login-hint":       "پاسورڊ نه آهي؟ ايپ ڊيولپر سان رابطو ڪريو۔",
+    "header-logo":      "📋 NGO رپورٽ ايپ",
+    "btn-signout-text": "سائن آئوٽ",
+    "tab-users-text":   "👥 يوزر",
+    "tab-depts-text":   "🏬 شعبا",
+    "tab-devices-text": "📱 ڊيوائسز",
+    "tab-broadcast-text":"📢 نشريات",
+    "tab-subs-text":    "📍 جمع ڪرايل رپورٽون",
+    "tab-forms-text":   "📋 فارم",
+    "tab-org-text":     "🏢 تنظيم جا تفصيل",
+    "tab-ai-text":      "🤖 AI سيٽنگس",
+    "tab-pw-text":      "🔒 پاسورڊ تبديل ڪريو"
+  },
+  skr: {
+    "login-title":      "تنظیم پورٹل",
+    "login-sub":        "NGO رپورٹ ایپ · اپنی تنظیم دے یوزر تے اکاؤنٹ تفصیل منظم کرو۔",
+    "login-org-label":  "تنظیم دا ناں",
+    "login-pw-label":   "پاسورڈ",
+    "btn-signin-text":  "سائن اِن",
+    "login-hint":       "پاسورڈ نہیں؟ ایپ ڈیولپر نال رابطہ کرو۔",
+    "header-logo":      "📋 NGO رپورٹ ایپ",
+    "btn-signout-text": "سائن آؤٹ",
+    "tab-users-text":   "👥 یوزر",
+    "tab-depts-text":   "🏬 شعبے",
+    "tab-devices-text": "📱 ڈیوائسز",
+    "tab-broadcast-text":"📢 نشریات",
+    "tab-subs-text":    "📍 جمع کراوے",
+    "tab-forms-text":   "📋 فارم",
+    "tab-org-text":     "🏢 تنظیم دے تفصیل",
+    "tab-ai-text":      "🤖 AI سیٹنگز",
+    "tab-pw-text":      "🔒 پاسورڈ بدلو"
+  },
+  bn: {
+    "login-title":      "সংস্থা পোর্টাল",
+    "login-sub":        "NGO রিপোর্ট অ্যাপ · আপনার সংস্থার ব্যবহারকারী এবং অ্যাকাউন্ট পরিচালনা করুন।",
+    "login-org-label":  "সংস্থার নাম",
+    "login-pw-label":   "পাসওয়ার্ড",
+    "btn-signin-text":  "সাইন ইন",
+    "login-hint":       "পাসওয়ার্ড নেই? আপনার ডেভেলপারের সাথে যোগাযোগ করুন।",
+    "header-logo":      "📋 NGO রিপোর্ট অ্যাপ",
+    "btn-signout-text": "সাইন আউট",
+    "tab-users-text":   "👥 ব্যবহারকারী",
+    "tab-depts-text":   "🏬 বিভাগ",
+    "tab-devices-text": "📱 ডিভাইস",
+    "tab-broadcast-text":"📢 সম্প্রচার",
+    "tab-subs-text":    "📍 জমা",
+    "tab-forms-text":   "📋 ফর্ম",
+    "tab-org-text":     "🏢 সংস্থার বিবরণ",
+    "tab-ai-text":      "🤖 AI সেটিংস",
+    "tab-pw-text":      "🔒 পাসওয়ার্ড পরিবর্তন"
+  },
+  fr: {
+    "login-title":      "Portail de l'organisation",
+    "login-sub":        "NGO Report App · Gérez les utilisateurs et les détails du compte de votre organisation.",
+    "login-org-label":  "Nom de l'organisation",
+    "login-pw-label":   "Mot de passe",
+    "btn-signin-text":  "Se connecter",
+    "login-hint":       "Pas de mot de passe ? Contactez votre développeur d'application.",
+    "header-logo":      "📋 NGO Report App",
+    "btn-signout-text": "Se déconnecter",
+    "tab-users-text":   "👥 Utilisateurs",
+    "tab-depts-text":   "🏬 Départements",
+    "tab-devices-text": "📱 Appareils",
+    "tab-broadcast-text":"📢 Diffusion",
+    "tab-subs-text":    "📍 Soumissions",
+    "tab-forms-text":   "📋 Formulaires",
+    "tab-org-text":     "🏢 Détails de l'org",
+    "tab-ai-text":      "🤖 Paramètres AI",
+    "tab-pw-text":      "🔒 Changer le mot de passe"
+  },
+  nl: {
+    "login-title":      "Organisatieportaal",
+    "login-sub":        "NGO Report App · Beheer de gebruikers en accountgegevens van uw organisatie.",
+    "login-org-label":  "Naam van de organisatie",
+    "login-pw-label":   "Wachtwoord",
+    "btn-signin-text":  "Inloggen",
+    "login-hint":       "Geen wachtwoord? Neem contact op met uw app-ontwikkelaar.",
+    "header-logo":      "📋 NGO Report App",
+    "btn-signout-text": "Uitloggen",
+    "tab-users-text":   "👥 Gebruikers",
+    "tab-depts-text":   "🏬 Afdelingen",
+    "tab-devices-text": "📱 Apparaten",
+    "tab-broadcast-text":"📢 Uitzenden",
+    "tab-subs-text":    "📍 Inzendingen",
+    "tab-forms-text":   "📋 Formulieren",
+    "tab-org-text":     "🏢 Org-details",
+    "tab-ai-text":      "🤖 AI-instellingen",
+    "tab-pw-text":      "🔒 Wachtwoord wijzigen"
+  },
+  hi: {
+    "login-title":      "संस्था पोर्टल",
+    "login-sub":        "NGO रिपोर्ट ऐप · अपनी संस्था के उपयोगकर्ताओं और खाते का प्रबंधन करें।",
+    "login-org-label":  "संस्था का नाम",
+    "login-pw-label":   "पासवर्ड",
+    "btn-signin-text":  "साइन इन",
+    "login-hint":       "पासवर्ड नहीं है? अपने ऐप डेवलपर से संपर्क करें।",
+    "header-logo":      "📋 NGO रिपोर्ट ऐप",
+    "btn-signout-text": "साइन आउट",
+    "tab-users-text":   "👥 उपयोगकर्ता",
+    "tab-depts-text":   "🏬 विभाग",
+    "tab-devices-text": "📱 डिवाइस",
+    "tab-broadcast-text":"📢 प्रसारण",
+    "tab-subs-text":    "📍 सबमिशन",
+    "tab-forms-text":   "📋 फ़ॉर्म",
+    "tab-org-text":     "🏢 संस्था विवरण",
+    "tab-ai-text":      "🤖 AI सेटिंग्स",
+    "tab-pw-text":      "🔒 पासवर्ड बदलें"
+  },
+  ar: {
+    "login-title":      "بوابة المنظمة",
+    "login-sub":        "تطبيق تقارير المنظمات · إدارة مستخدمي وحساب مؤسستك.",
+    "login-org-label":  "اسم المنظمة",
+    "login-pw-label":   "كلمة المرور",
+    "btn-signin-text":  "تسجيل الدخول",
+    "login-hint":       "ليس لديك كلمة مرور؟ اتصل بمطور التطبيق.",
+    "header-logo":      "📋 تطبيق تقارير المنظمات",
+    "btn-signout-text": "تسجيل الخروج",
+    "tab-users-text":   "👥 المستخدمون",
+    "tab-depts-text":   "🏬 الأقسام",
+    "tab-devices-text": "📱 الأجهزة",
+    "tab-broadcast-text":"📢 البث",
+    "tab-subs-text":    "📍 التقارير المُرسلة",
+    "tab-forms-text":   "📋 النماذج",
+    "tab-org-text":     "🏢 تفاصيل المنظمة",
+    "tab-ai-text":      "🤖 إعدادات الذكاء الاصطناعي",
+    "tab-pw-text":      "🔒 تغيير كلمة المرور"
+  },
+  sw: {
+    "login-title":      "Portali ya Shirika",
+    "login-sub":        "Programu ya Ripoti ya NGO · Simamia watumiaji na maelezo ya akaunti ya shirika lako.",
+    "login-org-label":  "Jina la Shirika",
+    "login-pw-label":   "Nywila",
+    "btn-signin-text":  "Ingia",
+    "login-hint":       "Huna nywila? Wasiliana na msanidi programu.",
+    "header-logo":      "📋 Programu ya Ripoti ya NGO",
+    "btn-signout-text": "Toka",
+    "tab-users-text":   "👥 Watumiaji",
+    "tab-depts-text":   "🏬 Idara",
+    "tab-devices-text": "📱 Vifaa",
+    "tab-broadcast-text":"📢 Tangazo",
+    "tab-subs-text":    "📍 Mawasilisho",
+    "tab-forms-text":   "📋 Fomu",
+    "tab-org-text":     "🏢 Maelezo ya Shirika",
+    "tab-ai-text":      "🤖 Mipangilio ya AI",
+    "tab-pw-text":      "🔒 Badilisha Nywila"
+  },
+  pt: {
+    "login-title":      "Portal da Organização",
+    "login-sub":        "NGO Report App · Gerencie os usuários e detalhes da conta da sua organização.",
+    "login-org-label":  "Nome da Organização",
+    "login-pw-label":   "Senha",
+    "btn-signin-text":  "Entrar",
+    "login-hint":       "Não tem senha? Contate o desenvolvedor do aplicativo.",
+    "header-logo":      "📋 NGO Report App",
+    "btn-signout-text": "Sair",
+    "tab-users-text":   "👥 Usuários",
+    "tab-depts-text":   "🏬 Departamentos",
+    "tab-devices-text": "📱 Dispositivos",
+    "tab-broadcast-text":"📢 Transmissão",
+    "tab-subs-text":    "📍 Envios",
+    "tab-forms-text":   "📋 Formulários",
+    "tab-org-text":     "🏢 Detalhes da Org",
+    "tab-ai-text":      "🤖 Configurações de AI",
+    "tab-pw-text":      "🔒 Alterar Senha"
+  }
+};
+
+// ── IDs of elements that get translated ───────────────────────────
+// Each entry: { id, property } — property is 'textContent' or 'placeholder'
+const TRANSLATABLE_ELEMENTS = [
+  { id: "login-title-el",   key: "login-title",       prop: "textContent" },
+  { id: "login-sub-el",     key: "login-sub",         prop: "textContent" },
+  { id: "login-org-label-el", key: "login-org-label", prop: "textContent" },
+  { id: "login-pw-label-el",  key: "login-pw-label",  prop: "textContent" },
+  { id: "btn-signin-el",    key: "btn-signin-text",   prop: "textContent" },
+  { id: "login-hint-el",    key: "login-hint",        prop: "textContent" },
+  { id: "header-logo-el",   key: "header-logo",       prop: "textContent" },
+  { id: "btn-signout-el",   key: "btn-signout-text",  prop: "textContent" },
+  { id: "tab-users-btn",    key: "tab-users-text",    prop: "textContent" },
+  { id: "tab-depts-btn",    key: "tab-depts-text",    prop: "textContent" },
+  { id: "tab-devices-btn",  key: "tab-devices-text",  prop: "textContent" },
+  { id: "tab-broadcast-btn",key: "tab-broadcast-text",prop: "textContent" },
+  { id: "tab-subs-btn",     key: "tab-subs-text",     prop: "textContent" },
+  { id: "tab-forms-btn",    key: "tab-forms-text",    prop: "textContent" },
+  { id: "tab-org-btn",      key: "tab-org-text",      prop: "textContent" },
+  { id: "tab-ai-btn",       key: "tab-ai-text",       prop: "textContent" },
+  { id: "tab-pw-btn",       key: "tab-pw-text",       prop: "textContent" }
+];
+
+let _currentLang = "en";
+
+function buildLangDropdown() {
+  const dd = document.getElementById("lang-dropdown");
+  dd.innerHTML = PANEL_LANGUAGES.map(function(l) {
+    return `<div class="lang-option ${l.code === _currentLang ? 'selected' : ''}"
+      onclick="selectLang('${l.code}','${l.name}')">
+      <span>${l.name}</span>
+      ${l.code === _currentLang ? '<span class="lang-check">✓</span>' : ''}
+    </div>`;
+  }).join("");
+}
+
+function toggleLangDropdown() {
+  const dd = document.getElementById("lang-dropdown");
+  dd.classList.toggle("open");
+  if (dd.classList.contains("open")) {
+    buildLangDropdown();
+  }
+}
+
+function selectLang(code, name) {
+  _currentLang = code;
+  localStorage.setItem("panel_lang", code);
+  document.getElementById("lang-current-label").textContent = name;
+  document.getElementById("lang-dropdown").classList.remove("open");
+  applyPanelLanguage(code);
+}
+
+function applyPanelLanguage(code) {
+  const t   = PANEL_TRANSLATIONS[code] || PANEL_TRANSLATIONS["en"];
+  const dir = (PANEL_LANGUAGES.find(function(l) { return l.code === code; }) || {}).dir || "ltr";
+
+  // Apply direction to body
+  document.body.setAttribute("dir", dir);
+
+  // Apply translations to all registered elements
+  TRANSLATABLE_ELEMENTS.forEach(function(entry) {
+    const el = document.getElementById(entry.id);
+    if (!el) return;
+    const val = t[entry.key];
+    if (!val) return;
+    if (entry.prop === "textContent") {
+      el.textContent = val;
+    } else {
+      el.setAttribute(entry.prop, val);
+    }
+  });
+}
+
+function initPanelLanguage() {
+  const saved = localStorage.getItem("panel_lang") || "en";
+  _currentLang = saved;
+  const lang = PANEL_LANGUAGES.find(function(l) { return l.code === saved; }) || PANEL_LANGUAGES[0];
+  document.getElementById("lang-current-label").textContent = lang.name;
+  applyPanelLanguage(saved);
+}
+
+// Close dropdown when clicking outside
+document.addEventListener("click", function(e) {
+  const wrap = document.getElementById("lang-wrap");
+  if (wrap && !wrap.contains(e.target)) {
+    const dd = document.getElementById("lang-dropdown");
+    if (dd) dd.classList.remove("open");
+  }
+});
+
+// Init language on page load
+initPanelLanguage();
+</script>
+</body>
+</html>
