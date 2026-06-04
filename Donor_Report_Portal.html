@@ -1,0 +1,1463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Donor Report Portal — ReportBase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+/* ═══════════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════════ */
+:root {
+  --ink:        #1a1f2e;
+  --ink2:       #3d4459;
+  --muted:      #7a8199;
+  --pale:       #f0f2f8;
+  --bg:         #f7f8fc;
+  --surface:    #ffffff;
+  --border:     rgba(0,0,0,0.07);
+  --border-md:  rgba(0,0,0,0.12);
+  --green:      #1a7a52;
+  --green-dim:  #e6f4ee;
+  --amber:      #92540a;
+  --amber-dim:  #fef3e2;
+  --red:        #b91c1c;
+  --red-dim:    #fee2e2;
+  --blue:       #1e3a8a;
+  --blue-mid:   #3b5fc0;
+  --blue-dim:   #eff2fd;
+  --accent:     #c8a96e;
+  --serif:      'DM Serif Display', serif;
+  --mono:       'DM Mono', monospace;
+  --sans:       'DM Sans', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 14px;
+  min-height: 100vh;
+}
+
+/* ═══════════════════════════════════════════════
+   LOGIN
+═══════════════════════════════════════════════ */
+#login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #0f172a 0%, #1e3a8a 50%, #1e40af 100%);
+  position: relative;
+  overflow: hidden;
+}
+#login-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(200,169,110,0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(59,95,192,0.2) 0%, transparent 50%);
+}
+.login-card {
+  position: relative;
+  background: rgba(255,255,255,0.97);
+  border-radius: 20px;
+  padding: 48px 44px;
+  width: 420px;
+  max-width: 95vw;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.35);
+}
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+.login-brand-mark {
+  width: 40px; height: 40px;
+  background: var(--blue);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--serif);
+  color: var(--accent);
+  font-size: 20px;
+  font-weight: 400;
+}
+.login-brand-text {
+  font-family: var(--serif);
+  font-size: 22px;
+  color: var(--blue);
+  letter-spacing: -0.5px;
+}
+.login-title {
+  font-family: var(--serif);
+  font-size: 28px;
+  color: var(--ink);
+  margin-bottom: 6px;
+  line-height: 1.2;
+}
+.login-sub {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 30px;
+  line-height: 1.6;
+}
+.field-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 6px;
+}
+.field-input {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--border-md);
+  border-radius: 10px;
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--bg);
+  margin-bottom: 16px;
+  transition: border-color .2s, box-shadow .2s;
+}
+.field-input:focus {
+  outline: none;
+  border-color: var(--blue-mid);
+  box-shadow: 0 0 0 3px var(--blue-dim);
+}
+.btn-login {
+  width: 100%;
+  padding: 13px;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+  box-shadow: 0 4px 16px rgba(30,58,138,0.3);
+  margin-top: 4px;
+}
+.btn-login:hover { background: #1e3070; transform: translateY(-1px); }
+.btn-login:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.login-error {
+  background: var(--red-dim);
+  color: var(--red);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-top: 14px;
+  display: none;
+}
+
+/* ═══════════════════════════════════════════════
+   MAIN APP
+═══════════════════════════════════════════════ */
+#app { display: none; }
+
+/* ── Top Bar ── */
+.topbar {
+  background: var(--blue);
+  color: #fff;
+  padding: 0 28px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+}
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.topbar-brand-mark {
+  width: 32px; height: 32px;
+  background: rgba(200,169,110,0.25);
+  border: 1px solid rgba(200,169,110,0.4);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--serif);
+  color: var(--accent);
+  font-size: 16px;
+}
+.topbar-name {
+  font-family: var(--serif);
+  font-size: 18px;
+  color: #fff;
+  letter-spacing: -0.3px;
+}
+.topbar-org {
+  font-size: 12px;
+  color: rgba(255,255,255,0.6);
+  font-family: var(--mono);
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.btn-print {
+  padding: 7px 16px;
+  background: rgba(200,169,110,0.2);
+  border: 1px solid rgba(200,169,110,0.4);
+  border-radius: 7px;
+  color: var(--accent);
+  font-family: var(--sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-print:hover { background: rgba(200,169,110,0.35); }
+.btn-logout {
+  padding: 7px 14px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 7px;
+  color: rgba(255,255,255,0.8);
+  font-family: var(--sans);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-logout:hover { background: rgba(255,255,255,0.18); }
+
+/* ── Tab Bar ── */
+.tabbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 28px;
+  display: flex;
+  gap: 4px;
+}
+.tab-btn {
+  padding: 14px 18px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all .2s;
+}
+.tab-btn:hover { color: var(--ink); }
+.tab-btn.active { color: var(--blue); border-bottom-color: var(--blue-mid); font-weight: 600; }
+
+/* ── Content ── */
+.content { padding: 28px; max-width: 1200px; margin: 0 auto; }
+
+/* ── Page Header ── */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.page-header-left {}
+.page-title {
+  font-family: var(--serif);
+  font-size: 32px;
+  color: var(--ink);
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+.page-subtitle {
+  color: var(--muted);
+  font-size: 13px;
+}
+.refresh-btn {
+  padding: 9px 18px;
+  background: var(--blue-dim);
+  color: var(--blue);
+  border: 1px solid rgba(59,95,192,0.2);
+  border-radius: 8px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.refresh-btn:hover { background: #dde4fa; }
+.refresh-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ── Stat Cards ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 14px 14px 0 0;
+}
+.stat-card.blue::before  { background: var(--blue-mid); }
+.stat-card.green::before { background: var(--green); }
+.stat-card.amber::before { background: #d97706; }
+.stat-card.red::before   { background: var(--red); }
+.stat-card.purple::before{ background: #7c3aed; }
+.stat-icon {
+  font-size: 22px;
+  margin-bottom: 10px;
+  display: block;
+}
+.stat-value {
+  font-family: var(--serif);
+  font-size: 36px;
+  color: var(--ink);
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.stat-label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* ── Section ── */
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.section-head {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.section-title {
+  font-family: var(--serif);
+  font-size: 18px;
+  color: var(--ink);
+}
+.section-body { padding: 22px; }
+
+/* ── Data Quality Bar ── */
+.dq-bar {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.dq-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.dq-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+.dq-dot.green { background: var(--green); }
+.dq-dot.amber { background: #d97706; }
+.dq-dot.red   { background: var(--red); }
+
+/* ── Facilities Grid ── */
+.facilities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+.facility-item {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.facility-icon { font-size: 20px; }
+.facility-info {}
+.facility-name { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.facility-pct  { font-family: var(--serif); font-size: 22px; color: var(--ink); }
+
+/* ── Progress Bar ── */
+.prog-bar-wrap { margin-bottom: 14px; }
+.prog-bar-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+.prog-bar-track { height: 6px; background: var(--pale); border-radius: 99px; overflow: hidden; }
+.prog-bar-fill  { height: 100%; border-radius: 99px; background: var(--blue-mid); transition: width 1s ease; }
+.prog-bar-fill.green { background: var(--green); }
+.prog-bar-fill.amber { background: #d97706; }
+
+/* ── Table ── */
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.data-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: var(--bg); }
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge.green { background: var(--green-dim); color: var(--green); }
+.badge.amber { background: var(--amber-dim); color: var(--amber); }
+.badge.blue  { background: var(--blue-dim);  color: var(--blue); }
+.badge.red   { background: var(--red-dim);   color: var(--red); }
+
+/* ── Map ── */
+#map {
+  height: 480px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.map-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 22px;
+  border-top: 1px solid var(--border);
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.legend-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.15);
+}
+
+/* ── Submissions Tab ── */
+.filter-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+  align-items: flex-end;
+}
+.filter-group { display: flex; flex-direction: column; gap: 4px; min-width: 140px; }
+.filter-group label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; }
+.filter-group select,
+.filter-group input {
+  padding: 8px 12px;
+  border: 1.5px solid var(--border-md);
+  border-radius: 8px;
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--surface);
+}
+.btn-sm {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all .2s;
+}
+.btn-blue  { background: var(--blue-dim); color: var(--blue); }
+.btn-blue:hover { background: #dde4fa; }
+.btn-clear { background: var(--pale); color: var(--ink2); }
+.btn-clear:hover { background: #e2e5f0; }
+
+/* ── Detail Panel ── */
+.detail-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 200;
+  display: none;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+.detail-overlay.open { display: flex; }
+.detail-panel {
+  width: 480px;
+  max-width: 95vw;
+  height: 100vh;
+  background: var(--surface);
+  overflow-y: auto;
+  box-shadow: -8px 0 40px rgba(0,0,0,0.2);
+  animation: slideIn .25s ease;
+}
+@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+.detail-head {
+  padding: 22px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 1;
+}
+.detail-title { font-family: var(--serif); font-size: 20px; }
+.btn-close {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border-md);
+  background: var(--bg);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+}
+.detail-body { padding: 22px 24px; }
+.detail-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.detail-meta-item {}
+.detail-meta-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+.detail-meta-value { font-size: 14px; color: var(--ink); }
+.detail-section-title {
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--ink);
+  margin: 18px 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.field-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.field-row:last-child { border-bottom: none; }
+.field-key   { color: var(--muted); flex: 0 0 45%; font-weight: 500; }
+.field-val   { color: var(--ink); text-align: right; word-break: break-word; }
+
+/* ── Loading ── */
+.loading-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--border-md);
+  border-top-color: var(--blue-mid);
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Empty ── */
+.empty-state {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--muted);
+}
+.empty-state .empty-icon { font-size: 40px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; }
+
+/* ── Toast ── */
+#toast {
+  position: fixed;
+  bottom: 28px; right: 28px;
+  background: var(--ink);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 999;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all .3s;
+  pointer-events: none;
+  max-width: 320px;
+}
+#toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── Print Styles ── */
+@media print {
+  body { background: white; }
+  .topbar, .tabbar, .tab-btn, .btn-print, .btn-logout,
+  .btn-close, .filter-row, .detail-overlay,
+  #tab-map, #tab-submissions { display: none !important; }
+  #tab-overview { display: block !important; }
+  .content { padding: 0; max-width: 100%; }
+  .section { break-inside: avoid; }
+  .page-header-left .page-subtitle::after {
+    content: " — Printed: " attr(data-date);
+  }
+}
+
+/* ── Two-col layout ── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     LOGIN SCREEN
+═══════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-brand-mark">R</div>
+      <div class="login-brand-text">ReportBase</div>
+    </div>
+    <h1 class="login-title">Donor Report<br>Portal</h1>
+    <p class="login-sub">Sign in with your organisation credentials to view field activity reports and maps.</p>
+    <label class="field-label" for="inp-org">Organisation Name</label>
+    <input class="field-input" id="inp-org" type="text" placeholder="e.g. V-KARE Foundation" autocomplete="off">
+    <label class="field-label" for="inp-pw">Password</label>
+    <input class="field-input" id="inp-pw" type="password" placeholder="Your Client Panel password">
+    <button class="btn-login" id="btn-login" onclick="doLogin()">Sign In →</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MAIN APP
+═══════════════════════════════════════════ -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-brand-mark">R</div>
+      <div>
+        <div class="topbar-name">ReportBase</div>
+        <div class="topbar-org" id="topbar-org">—</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn-print" onclick="window.print()">🖨 Print / PDF</button>
+      <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <button class="tab-btn active" onclick="showTab('overview')" id="tbtn-overview">📊 Overview</button>
+    <button class="tab-btn" onclick="showTab('map')" id="tbtn-map">🗺 Field Map</button>
+    <button class="tab-btn" onclick="showTab('submissions')" id="tbtn-submissions">📋 Submissions</button>
+  </div>
+
+  <!-- OVERVIEW TAB -->
+  <div id="tab-overview" class="content">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1 class="page-title" id="report-title">Field Activity Report</h1>
+        <p class="page-subtitle" id="report-sub">Loading...</p>
+      </div>
+      <button class="refresh-btn" id="btn-refresh" onclick="loadData()">↻ Refresh Data</button>
+    </div>
+
+    <div id="overview-content">
+      <div class="loading-wrap"><div class="spinner"></div><span>Loading report data…</span></div>
+    </div>
+  </div>
+
+  <!-- MAP TAB -->
+  <div id="tab-map" class="content" style="display:none">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1 class="page-title">Field Visit Map</h1>
+        <p class="page-subtitle">All visited locations — click a pin for centre details</p>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-head">
+        <span class="section-title">Centre Locations</span>
+        <span id="map-count" style="font-size:13px;color:var(--muted)">—</span>
+      </div>
+      <div class="section-body" style="padding:0">
+        <div id="map"></div>
+        <div class="map-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#1a7a52"></div> Good facilities (3+)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div> Some facilities (1-2)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#b91c1c"></div> No facilities</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#7a8199"></div> No GPS recorded</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUBMISSIONS TAB -->
+  <div id="tab-submissions" class="content" style="display:none">
+    <div class="page-header">
+      <div class="page-header-left">
+        <h1 class="page-title">All Submissions</h1>
+        <p class="page-subtitle">Detailed view of every field submission</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <span class="section-title">Filter Submissions</span>
+      </div>
+      <div class="section-body">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Staff Member</label>
+            <select id="f-staff"><option value="">All Staff</option></select>
+          </div>
+          <div class="filter-group">
+            <label>Form</label>
+            <select id="f-form"><option value="">All Forms</option></select>
+          </div>
+          <div class="filter-group">
+            <label>From Date</label>
+            <input type="date" id="f-from">
+          </div>
+          <div class="filter-group">
+            <label>To Date</label>
+            <input type="date" id="f-to">
+          </div>
+          <button class="btn-sm btn-blue" onclick="applyFilters()">🔍 Filter</button>
+          <button class="btn-sm btn-clear" onclick="clearFilters()">✕ Clear</button>
+        </div>
+        <div id="sub-table-wrap">
+          <div class="loading-wrap"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Panel -->
+<div class="detail-overlay" id="detail-overlay" onclick="closeDetail(event)">
+  <div class="detail-panel" id="detail-panel">
+    <div class="detail-head">
+      <span class="detail-title" id="detail-title">Submission Detail</span>
+      <button class="btn-close" onclick="closeDetailPanel()">✕</button>
+    </div>
+    <div class="detail-body" id="detail-body"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwVtUduUnp0-15kqTSSNhcZ9BqsI805E5GFpTvNREAJST8hgcL_WDi5NfW2pA8rk9E/exec";
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let _org = "", _pw = "";
+let _submissions = [];   // deduplicated
+let _forms = {};         // formId → { name, fieldMap }
+let _shownSubs = [];     // after filters
+let _map = null;
+let _mapInitialised = false;
+let _cbCounter = 0;
+
+// ═══════════════════════════════════════════════
+//  JSONP FETCH
+// ═══════════════════════════════════════════════
+function gasCall(params) {
+  return new Promise((resolve, reject) => {
+    const cb = "cb" + (++_cbCounter);
+    const url = GAS_URL + "?" + Object.entries({ ...params, callback: cb })
+      .map(([k,v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v)).join("&");
+    const script = document.createElement("script");
+    const timer  = setTimeout(() => { cleanup(); reject(new Error("Request timed out")); }, 20000);
+    window[cb]   = (data) => { cleanup(); resolve(data); };
+    function cleanup() { clearTimeout(timer); delete window[cb]; if (script.parentNode) script.parentNode.removeChild(script); }
+    script.onerror = () => { cleanup(); reject(new Error("Network error")); };
+    script.src = url;
+    document.head.appendChild(script);
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════════
+async function doLogin() {
+  const org = document.getElementById("inp-org").value.trim().toLowerCase();
+  const pw  = document.getElementById("inp-pw").value.trim();
+  const errEl = document.getElementById("login-error");
+  errEl.style.display = "none";
+  if (!org || !pw) { showLoginError("Please enter your organisation name and password."); return; }
+  const btn = document.getElementById("btn-login");
+  btn.disabled = true; btn.textContent = "Signing in…";
+  try {
+    const res = await gasCall({ action: "clientlogin", org, orgpassword: pw });
+    if (res.error || !res.success) {
+      showLoginError(res.message || "Invalid credentials. Please check your organisation name and password.");
+    } else {
+      _org = org; _pw = pw;
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      document.getElementById("topbar-org").textContent = res.org || org;
+      document.getElementById("report-title").textContent = toTitleCase(org) + " — Field Activity Report";
+      await loadData();
+    }
+  } catch(e) { showLoginError("Connection failed. Please check your internet connection."); }
+  btn.disabled = false; btn.textContent = "Sign In →";
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById("login-error");
+  el.textContent = msg; el.style.display = "block";
+}
+
+document.getElementById("inp-pw").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+document.getElementById("inp-org").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("inp-pw").focus(); });
+
+function doLogout() {
+  _org = ""; _pw = ""; _submissions = []; _forms = {};
+  document.getElementById("app").style.display = "none";
+  document.getElementById("login-screen").style.display = "flex";
+  document.getElementById("inp-pw").value = "";
+}
+
+// ═══════════════════════════════════════════════
+//  LOAD DATA
+// ═══════════════════════════════════════════════
+async function loadData() {
+  const btn = document.getElementById("btn-refresh");
+  if (btn) { btn.disabled = true; btn.textContent = "↻ Loading…"; }
+  document.getElementById("overview-content").innerHTML = '<div class="loading-wrap"><div class="spinner"></div><span>Fetching latest data…</span></div>';
+  try {
+    const [subRes, formRes] = await Promise.all([
+      gasCall({ action: "clientlistsubmissions", org: _org, orgpassword: _pw, limit: "500" }),
+      gasCall({ action: "clientlistforms",        org: _org, orgpassword: _pw })
+    ]);
+    // Build form field maps
+    _forms = {};
+    if (formRes.forms) {
+      formRes.forms.forEach(f => {
+        const fieldMap = {};
+        try {
+          const fields = JSON.parse(f.fields_json || "[]");
+          fields.forEach((field, i) => {
+            const key = "ext_field_" + i;
+            fieldMap[key] = field.label || field.name || ("Field " + i);
+          });
+        } catch(e) {}
+        _forms[f.form_id] = { name: f.form_name, fieldMap };
+      });
+    }
+    // Deduplicate submissions
+    const raw = subRes.submissions || [];
+    const seen = new Set();
+    _submissions = [];
+    raw.forEach(s => {
+      const key = (s.submission_id || "") + "|" + (s.submitted_by || "") + "|" + (s.submitted_at || "");
+      if (!seen.has(key)) { seen.add(key); _submissions.push(s); }
+    });
+    const dupCount = raw.length - _submissions.length;
+    renderOverview(dupCount);
+    populateFilters();
+    renderSubTable(_submissions);
+    if (_mapInitialised) renderMap();
+    const now = new Date().toLocaleString();
+    document.getElementById("report-sub").textContent = "Last updated: " + now + "  ·  " + _submissions.length + " unique submissions";
+    toast("✅ Data loaded — " + _submissions.length + " submissions");
+  } catch(e) {
+    document.getElementById("overview-content").innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load data: ' + e.message + '</p></div>';
+    toast("Failed to load data: " + e.message, true);
+  }
+  if (btn) { btn.disabled = false; btn.textContent = "↻ Refresh Data"; }
+}
+
+// ═══════════════════════════════════════════════
+//  OVERVIEW RENDER
+// ═══════════════════════════════════════════════
+function renderOverview(dupCount) {
+  const subs = _submissions;
+  if (!subs.length) {
+    document.getElementById("overview-content").innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>No submissions found for this organisation.</p></div>';
+    return;
+  }
+
+  // Compute stats
+  const totalCentres   = new Set(subs.map(s => getCentreKey(s))).size;
+  const totalStaff     = new Set(subs.map(s => s.submitted_by)).size;
+  const withGPS        = subs.filter(s => s.latitude && s.latitude !== 0).length;
+  const noGPS          = subs.length - withGPS;
+
+  // Population stats
+  let totalChristianFamilies = 0, totalPopulation = 0, totalWomen = 0, totalIlliterate = 0;
+  let electricity=0, water=0, toilet=0, ventilation=0, fans=0;
+  const areaSet = new Set(), districtSet = new Set(), tehsilSet = new Set();
+  const staffCount = {};
+  const formCount  = {};
+
+  subs.forEach(s => {
+    const vals = parseValues(s);
+    const formInfo = _forms[s.template_id] || {};
+    const fm = formInfo.fieldMap || {};
+
+    // Staff counts
+    const sb = s.submitted_by || "Unknown";
+    staffCount[sb] = (staffCount[sb] || 0) + 1;
+    // Form counts
+    const fn = s.form_name || "Unknown";
+    formCount[fn] = (formCount[fn] || 0) + 1;
+
+    // Look up values by field label
+    Object.entries(vals).forEach(([key, val]) => {
+      const label = (fm[key] || key).toLowerCase();
+      const n = parseNum(val);
+
+      if (label.includes("christian famil")) totalChristianFamilies += n;
+      if (label.includes("christian population")) totalPopulation += n;
+      if (label.includes("women between") || label.includes("women who are")) totalWomen += n;
+      if (label.includes("illiterate")) totalIlliterate += n;
+      if (label.includes("area") && !label.includes("non-christian") && val && val.length > 1) areaSet.add(val.trim());
+      if (label.includes("district") && val && val.length > 1) districtSet.add(val.trim());
+      if (label.includes("tehsil") && val && val.length > 1) tehsilSet.add(val.trim());
+
+      // Facilities (toggle yes/no)
+      if (label.includes("electricity") && isYes(val)) electricity++;
+      if (label.includes("clean drinking water") || (label.includes("water") && !label.includes("women"))) { if (isYes(val)) water++; }
+      if (label.includes("toilet")) { if (isYes(val)) toilet++; }
+      if (label.includes("ventilation")) { if (isYes(val)) ventilation++; }
+      if (label.includes("fans")) { if (isYes(val)) fans++; }
+    });
+  });
+
+  const n = subs.length;
+  const pct = v => n > 0 ? Math.round((v/n)*100) : 0;
+
+  // Date range
+  const dates = subs.map(s => s.submitted_at).filter(Boolean).sort();
+  const dateRange = dates.length > 0 ? (dates[0].split(",")[0] + " – " + dates[dates.length-1].split(",")[0]) : "—";
+
+  const html = `
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card blue">
+        <span class="stat-icon">📝</span>
+        <div class="stat-value">${n}</div>
+        <div class="stat-label">Total Submissions</div>
+      </div>
+      <div class="stat-card green">
+        <span class="stat-icon">🏫</span>
+        <div class="stat-value">${totalCentres}</div>
+        <div class="stat-label">Unique Centres</div>
+      </div>
+      <div class="stat-card amber">
+        <span class="stat-icon">👤</span>
+        <div class="stat-value">${totalStaff}</div>
+        <div class="stat-label">Field Staff</div>
+      </div>
+      <div class="stat-card purple">
+        <span class="stat-icon">📍</span>
+        <div class="stat-value">${withGPS}</div>
+        <div class="stat-label">GPS Verified</div>
+      </div>
+      <div class="stat-card blue">
+        <span class="stat-icon">👨‍👩‍👧</span>
+        <div class="stat-value">${totalChristianFamilies.toLocaleString()}</div>
+        <div class="stat-label">Christian Families</div>
+      </div>
+      <div class="stat-card green">
+        <span class="stat-icon">👩</span>
+        <div class="stat-value">${totalWomen.toLocaleString()}</div>
+        <div class="stat-label">Women (16–35 yrs)</div>
+      </div>
+    </div>
+
+    <!-- Data Quality -->
+    <div class="section">
+      <div class="section-head">
+        <span class="section-title">Data Quality</span>
+        <span style="font-size:12px;color:var(--muted)">${dateRange}</span>
+      </div>
+      <div class="section-body">
+        <div class="dq-bar">
+          <div class="dq-item"><div class="dq-dot green"></div> ${n} unique submissions</div>
+          ${dupCount > 0 ? `<div class="dq-item"><div class="dq-dot amber"></div> ${dupCount} duplicate(s) removed</div>` : ""}
+          ${noGPS > 0 ? `<div class="dq-item"><div class="dq-dot amber"></div> ${noGPS} submission(s) without GPS</div>` : ""}
+          <div class="dq-item"><div class="dq-dot green"></div> ${districtSet.size} district(s) covered</div>
+          <div class="dq-item"><div class="dq-dot green"></div> ${tehsilSet.size} tehsil(s) covered</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Two column -->
+    <div class="two-col">
+      <!-- Facilities -->
+      <div class="section">
+        <div class="section-head"><span class="section-title">Facilities Assessment</span></div>
+        <div class="section-body">
+          <div class="facilities-grid">
+            ${facilityCard("⚡", "Electricity", electricity, n)}
+            ${facilityCard("💧", "Clean Water", water, n)}
+            ${facilityCard("🚻", "Toilet", toilet, n)}
+            ${facilityCard("💨", "Ventilation", ventilation, n)}
+            ${facilityCard("🌀", "Fans", fans, n)}
+          </div>
+          <div style="margin-top:18px">
+            ${progBar("Electricity",  pct(electricity), "green")}
+            ${progBar("Clean Water",  pct(water), "green")}
+            ${progBar("Toilet",       pct(toilet), "amber")}
+            ${progBar("Ventilation",  pct(ventilation), "green")}
+          </div>
+        </div>
+      </div>
+
+      <!-- Staff Activity -->
+      <div class="section">
+        <div class="section-head"><span class="section-title">Staff Activity</span></div>
+        <div class="section-body">
+          <table class="data-table">
+            <thead><tr><th>Staff</th><th>Submissions</th><th>Share</th></tr></thead>
+            <tbody>
+              ${Object.entries(staffCount).sort((a,b)=>b[1]-a[1]).map(([name, cnt]) => `
+                <tr>
+                  <td><strong>${name}</strong></td>
+                  <td>${cnt}</td>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <div style="flex:1;height:4px;background:var(--pale);border-radius:99px;overflow:hidden">
+                        <div style="width:${pct(cnt)}%;height:100%;background:var(--blue-mid);border-radius:99px"></div>
+                      </div>
+                      <span style="font-size:11px;color:var(--muted);min-width:30px">${pct(cnt)}%</span>
+                    </div>
+                  </td>
+                </tr>`).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Geographic Coverage -->
+    <div class="section">
+      <div class="section-head"><span class="section-title">Geographic Coverage</span></div>
+      <div class="section-body">
+        <div class="two-col">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Districts</div>
+            ${[...districtSet].filter(Boolean).map(d => `<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">📍 ${d}</div>`).join("") || "<div style='color:var(--muted);font-size:13px'>No district data</div>"}
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px">Tehsils / Areas</div>
+            ${[...tehsilSet].filter(Boolean).map(t => `<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px">🏘 ${t}</div>`).join("") || "<div style='color:var(--muted);font-size:13px'>No tehsil data</div>"}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Population Summary -->
+    <div class="section">
+      <div class="section-head"><span class="section-title">Population Summary</span></div>
+      <div class="section-body">
+        <div class="stats-grid">
+          <div class="stat-card blue">
+            <span class="stat-icon">👨‍👩‍👧</span>
+            <div class="stat-value">${totalChristianFamilies.toLocaleString()}</div>
+            <div class="stat-label">Christian Families</div>
+          </div>
+          <div class="stat-card green">
+            <span class="stat-icon">🏘</span>
+            <div class="stat-value">${totalPopulation.toLocaleString()}</div>
+            <div class="stat-label">Christian Population</div>
+          </div>
+          <div class="stat-card amber">
+            <span class="stat-icon">👩</span>
+            <div class="stat-value">${totalWomen.toLocaleString()}</div>
+            <div class="stat-label">Women (16–35 yrs)</div>
+          </div>
+          <div class="stat-card red">
+            <span class="stat-icon">📚</span>
+            <div class="stat-value">${totalIlliterate.toLocaleString()}</div>
+            <div class="stat-label">Illiterate Women</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById("overview-content").innerHTML = html;
+}
+
+function facilityCard(icon, name, count, total) {
+  const p = total > 0 ? Math.round((count/total)*100) : 0;
+  const col = p >= 70 ? "var(--green)" : p >= 40 ? "#d97706" : "var(--red)";
+  return `<div class="facility-item">
+    <span class="facility-icon">${icon}</span>
+    <div class="facility-info">
+      <div class="facility-name">${name}</div>
+      <div class="facility-pct" style="color:${col}">${p}%</div>
+    </div>
+  </div>`;
+}
+
+function progBar(label, pct, color) {
+  return `<div class="prog-bar-wrap">
+    <div class="prog-bar-label"><span>${label}</span><span>${pct}%</span></div>
+    <div class="prog-bar-track"><div class="prog-bar-fill ${color}" style="width:${pct}%"></div></div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════
+//  MAP
+// ═══════════════════════════════════════════════
+function showTab(tab) {
+  ["overview","map","submissions"].forEach(t => {
+    document.getElementById("tab-" + t).style.display = t === tab ? "block" : "none";
+    document.getElementById("tbtn-" + t).classList.toggle("active", t === tab);
+  });
+  if (tab === "map" && !_mapInitialised) { initMap(); }
+  if (tab === "map" && _mapInitialised)  { renderMap(); }
+}
+
+function initMap() {
+  _map = L.map("map").setView([30.3753, 69.3451], 6);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: "© OpenStreetMap contributors",
+    maxZoom: 19
+  }).addTo(_map);
+  _mapInitialised = true;
+  renderMap();
+}
+
+function renderMap() {
+  if (!_map) return;
+  _map.eachLayer(l => { if (l instanceof L.Marker || l instanceof L.CircleMarker) _map.removeLayer(l); });
+
+  const withGPS = _submissions.filter(s => s.latitude && s.latitude !== 0);
+  document.getElementById("map-count").textContent = withGPS.length + " locations plotted";
+
+  if (!withGPS.length) return;
+
+  const bounds = [];
+  withGPS.forEach(s => {
+    const vals = parseValues(s);
+    const fm   = (_forms[s.template_id] || {}).fieldMap || {};
+
+    // Get facility count for colour
+    let facCount = 0;
+    Object.entries(vals).forEach(([key, val]) => {
+      const label = (fm[key] || key).toLowerCase();
+      if ((label.includes("electricity") || label.includes("water") || label.includes("toilet") || label.includes("ventilation")) && isYes(val)) facCount++;
+    });
+
+    const colour = facCount >= 3 ? "#1a7a52" : facCount >= 1 ? "#d97706" : "#b91c1c";
+
+    // Get centre name
+    let centreName = s.form_name || "Centre";
+    let teacherName = "", areaName = "", districtName = "";
+    Object.entries(vals).forEach(([key, val]) => {
+      const label = (fm[key] || key).toLowerCase();
+      if (label.includes("centre name") && val) centreName = val;
+      if ((label.includes("suggested teacher") || label.includes("teacher")) && val && !teacherName) teacherName = val;
+      if (label.includes("area") && val && !areaName) areaName = val;
+      if (label.includes("district") && val && !districtName) districtName = val;
+    });
+
+    const marker = L.circleMarker([s.latitude, s.longitude], {
+      radius: 10,
+      fillColor: colour,
+      color: "#fff",
+      weight: 2,
+      opacity: 1,
+      fillOpacity: 0.85
+    });
+
+    const popup = `
+      <div style="font-family:'DM Sans',sans-serif;min-width:200px">
+        <div style="font-weight:700;font-size:14px;margin-bottom:6px;color:#1a1f2e">${centreName}</div>
+        ${teacherName ? `<div style="font-size:12px;color:#7a8199;margin-bottom:3px">👤 ${teacherName}</div>` : ""}
+        ${areaName    ? `<div style="font-size:12px;color:#7a8199;margin-bottom:3px">📍 ${areaName}${districtName ? ", " + districtName : ""}</div>` : ""}
+        <div style="font-size:12px;color:#7a8199;margin-bottom:3px">👤 Staff: ${s.submitted_by}</div>
+        <div style="font-size:12px;color:#7a8199;margin-bottom:8px">📅 ${s.submitted_at || "—"}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${facCount > 0 ? `<span style="background:#e6f4ee;color:#1a7a52;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">${facCount} facilit${facCount>1?"ies":"y"}</span>` : `<span style="background:#fee2e2;color:#b91c1c;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">No facilities</span>`}
+          ${s.latitude ? `<span style="background:#eff2fd;color:#1e3a8a;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600">GPS ✓</span>` : ""}
+        </div>
+      </div>`;
+
+    marker.bindPopup(popup);
+    marker.addTo(_map);
+    bounds.push([s.latitude, s.longitude]);
+  });
+
+  if (bounds.length > 0) {
+    try { _map.fitBounds(bounds, { padding: [40, 40] }); } catch(e) {}
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  SUBMISSIONS TABLE
+// ═══════════════════════════════════════════════
+function populateFilters() {
+  const staffSel = document.getElementById("f-staff");
+  const formSel  = document.getElementById("f-form");
+  const staffs   = [...new Set(_submissions.map(s => s.submitted_by))].sort();
+  const forms    = [...new Set(_submissions.map(s => s.form_name))].sort();
+
+  staffSel.innerHTML = '<option value="">All Staff</option>' + staffs.map(s => `<option>${s}</option>`).join("");
+  formSel.innerHTML  = '<option value="">All Forms</option>' + forms.map(f => `<option>${f}</option>`).join("");
+}
+
+function applyFilters() {
+  const staff = document.getElementById("f-staff").value;
+  const form  = document.getElementById("f-form").value;
+  const from  = document.getElementById("f-from").value;
+  const to    = document.getElementById("f-to").value;
+
+  let filtered = _submissions;
+  if (staff) filtered = filtered.filter(s => s.submitted_by === staff);
+  if (form)  filtered = filtered.filter(s => s.form_name === form);
+  if (from)  filtered = filtered.filter(s => new Date(s.submitted_at) >= new Date(from));
+  if (to)    filtered = filtered.filter(s => new Date(s.submitted_at) <= new Date(to + "T23:59:59"));
+
+  renderSubTable(filtered);
+}
+
+function clearFilters() {
+  document.getElementById("f-staff").value = "";
+  document.getElementById("f-form").value  = "";
+  document.getElementById("f-from").value  = "";
+  document.getElementById("f-to").value    = "";
+  renderSubTable(_submissions);
+}
+
+function renderSubTable(subs) {
+  _shownSubs = subs;
+  const wrap = document.getElementById("sub-table-wrap");
+  if (!subs.length) {
+    wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><p>No submissions match your filter.</p></div>';
+    return;
+  }
+  wrap.innerHTML = `
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">${subs.length} submission${subs.length>1?"s":""}</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Date</th>
+          <th>Staff</th>
+          <th>Form</th>
+          <th>Centre</th>
+          <th>GPS</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${subs.map((s, i) => {
+          const vals = parseValues(s);
+          const fm   = (_forms[s.template_id] || {}).fieldMap || {};
+          let centreName = "";
+          Object.entries(vals).forEach(([key, val]) => {
+            if ((fm[key] || key).toLowerCase().includes("centre name") && val) centreName = val;
+          });
+          const hasGPS = s.latitude && s.latitude !== 0;
+          return `<tr>
+            <td><span class="badge blue">${s.submission_number || (i+1)}</span></td>
+            <td style="white-space:nowrap">${s.submitted_at || "—"}</td>
+            <td><strong>${s.submitted_by || "—"}</strong></td>
+            <td>${s.form_name || "—"}</td>
+            <td>${centreName || "—"}</td>
+            <td>${hasGPS ? '<span class="badge green">✓ GPS</span>' : '<span class="badge amber">No GPS</span>'}</td>
+            <td><button class="btn-sm btn-blue" onclick="openDetail(${i})" style="padding:5px 10px;font-size:12px">View</button></td>
+          </tr>`;
+        }).join("")}
+      </tbody>
+    </table>`;
+}
+
+// ═══════════════════════════════════════════════
+//  DETAIL PANEL
+// ═══════════════════════════════════════════════
+function openDetail(idx) {
+  const s   = _shownSubs[idx];
+  const fm  = (_forms[s.template_id] || {}).fieldMap || {};
+  const vals = parseValues(s);
+
+  document.getElementById("detail-title").textContent = s.form_name || "Submission";
+  document.getElementById("detail-overlay").classList.add("open");
+
+  // Group fields by section — use form sections if available
+  const sectionedVals = {};
+  Object.entries(vals).forEach(([key, val]) => {
+    const label = fm[key] || key;
+    if (!val || val === "null" || val === "") return;
+    // Try to detect section from label
+    let section = "Details";
+    if (/teacher|cnic|qualification/i.test(label)) section = "Teacher Info";
+    else if (/centre|area|presbytery|tehsil|district|pastor|contact/i.test(label)) section = "Centre Info";
+    else if (/famil|population|women|illiterate/i.test(label)) section = "Class Info";
+    else if (/toilet|water|electricity|ventilation|fan|building|access/i.test(label)) section = "Facilities";
+    else if (/committee|member/i.test(label)) section = "Committee";
+    else if (/training|student|supervision|timing/i.test(label)) section = "Training & Submission";
+    else if (/address/i.test(label)) section = "Addresses";
+    if (!sectionedVals[section]) sectionedVals[section] = [];
+    sectionedVals[section].push({ label, val });
+  });
+
+  const hasGPS = s.latitude && s.latitude !== 0;
+
+  let html = `
+    <div class="detail-meta">
+      <div class="detail-meta-item">
+        <div class="detail-meta-label">Submission #</div>
+        <div class="detail-meta-value">${s.submission_number || s.submission_id || "—"}</div>
+      </div>
+      <div class="detail-meta-item">
+        <div class="detail-meta-label">Date</div>
+        <div class="detail-meta-value">${s.submitted_at || "—"}</div>
+      </div>
+      <div class="detail-meta-item">
+        <div class="detail-meta-label">Staff</div>
+        <div class="detail-meta-value">${s.submitted_by || "—"}</div>
+      </div>
+      <div class="detail-meta-item">
+        <div class="detail-meta-label">GPS</div>
+        <div class="detail-meta-value">${hasGPS ? s.latitude.toFixed(5) + ", " + s.longitude.toFixed(5) : "Not recorded"}</div>
+      </div>
+    </div>`;
+
+  Object.entries(sectionedVals).forEach(([section, fields]) => {
+    html += `<div class="detail-section-title">${section}</div>`;
+    fields.forEach(({ label, val }) => {
+      html += `<div class="field-row">
+        <span class="field-key">${label}</span>
+        <span class="field-val">${formatFieldVal(val)}</span>
+      </div>`;
+    });
+  });
+
+  if (hasGPS) {
+    html += `<div class="detail-section-title">Location</div>
+      <div style="margin-top:8px;border-radius:10px;overflow:hidden;height:180px" id="mini-map-wrap">
+        <div id="mini-map" style="height:180px;border-radius:10px"></div>
+      </div>`;
+  }
+
+  document.getElementById("detail-body").innerHTML = html;
+
+  if (hasGPS) {
+    setTimeout(() => {
+      try {
+        const mm = L.map("mini-map", { zoomControl: true, attributionControl: false }).setView([s.latitude, s.longitude], 14);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(mm);
+        L.marker([s.latitude, s.longitude]).addTo(mm);
+      } catch(e) {}
+    }, 100);
+  }
+}
+
+function closeDetail(e) {
+  if (e.target === document.getElementById("detail-overlay")) closeDetailPanel();
+}
+function closeDetailPanel() {
+  document.getElementById("detail-overlay").classList.remove("open");
+}
+
+// ═══════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════
+function parseValues(s) {
+  try { return JSON.parse(s.values_json || "{}"); } catch(e) { return {}; }
+}
+
+function getCentreKey(s) {
+  const vals = parseValues(s);
+  const fm   = (_forms[s.template_id] || {}).fieldMap || {};
+  let name = "";
+  Object.entries(vals).forEach(([key, val]) => {
+    if ((fm[key] || key).toLowerCase().includes("centre name") && val) name = val;
+  });
+  return name || (s.latitude + "," + s.longitude) || s.submission_id;
+}
+
+function isYes(val) {
+  if (!val) return false;
+  return /^yes$/i.test(String(val).trim()) || String(val).trim() === "true";
+}
+
+function parseNum(val) {
+  const n = parseFloat(String(val || "0").replace(/,/g, ""));
+  return isNaN(n) ? 0 : n;
+}
+
+function formatFieldVal(val) {
+  if (!val || val === "null") return "—";
+  if (/^sig:\/\//i.test(val)) return "[Signature captured]";
+  if (/^data:image/i.test(val)) return "[Signature captured]";
+  if (/^https?:\/\//i.test(val)) return `<a href="${val}" target="_blank" style="color:var(--blue-mid)">View file ↗</a>`;
+  return String(val);
+}
+
+function toTitleCase(str) {
+  return (str || "").replace(/-/g, " ").replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.slice(1));
+}
+
+function toast(msg, isError) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.style.background = isError ? "var(--red)" : "var(--ink)";
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 3000);
+}
+</script>
+</body>
+</html>
