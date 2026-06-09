@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How ReportBase Works — Field Reporting for Organisations</title>
+<meta name="description" content="See how ReportBase works — from setting up your organisation to collecting field data, reviewing submissions, and sharing reports with donors.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#f7f8fc;
+  --surface:#ffffff;
+  --border:rgba(0,0,0,0.08);
+  --text:#1a1f2e;
+  --muted:#7a8199;
+  --navy:#1e3a8a;
+  --navy-bright:#3b5fc0;
+  --navy-dim:#eff2fd;
+  --gold:#c8a96e;
+  --gold-dim:#fef3e2;
+  --dark:#0f172a;
+  --green:#1a7a52;
+  --green-dim:#e6f4ee;
+  --serif:'DM Serif Display',Georgia,serif;
+  --sans:'DM Sans',system-ui,sans-serif;
+  --mono:'DM Mono',monospace;
+  --radius:14px;
+}
+
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(15,23,42,0.96);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(200,169,110,0.15);
+  padding:0 5%;
+  display:flex;align-items:center;justify-content:space-between;
+  height:64px;
+}
+.nav-brand{
+  display:flex;align-items:center;gap:10px;text-decoration:none;
+}
+.nav-brand img{height:36px;width:auto;}
+.nav-links{display:flex;align-items:center;gap:8px;}
+.nav-links a{
+  color:rgba(255,255,255,0.7);text-decoration:none;
+  font-size:14px;font-weight:500;padding:8px 14px;border-radius:8px;
+  transition:all .2s;
+}
+.nav-links a:hover{color:#fff;background:rgba(255,255,255,0.08)}
+.btn-nav-primary{
+  background:var(--gold)!important;color:var(--dark)!important;
+  font-weight:600!important;padding:8px 18px!important;
+}
+.btn-nav-primary:hover{background:#d4b97e!important}
+
+/* ── HERO ── */
+.hero{
+  background:linear-gradient(160deg,var(--dark) 0%,#1e3a8a 55%,#1e40af 100%);
+  padding:140px 5% 96px;
+  text-align:center;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 70% 50% at 50% 40%,rgba(200,169,110,0.08),transparent 70%);
+  pointer-events:none;
+}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(200,169,110,0.12);border:1px solid rgba(200,169,110,0.3);
+  color:var(--gold);font-size:12px;font-weight:500;letter-spacing:1px;
+  padding:6px 16px;border-radius:100px;margin-bottom:28px;
+  font-family:var(--mono);text-transform:uppercase;
+}
+.hero h1{
+  font-family:var(--serif);font-size:clamp(36px,6vw,68px);
+  color:#fff;line-height:1.1;margin-bottom:20px;
+}
+.hero h1 em{color:var(--gold);font-style:italic;}
+.hero p{
+  font-size:clamp(15px,1.8vw,19px);color:rgba(255,255,255,0.65);
+  max-width:540px;margin:0 auto 40px;font-weight:300;line-height:1.8;
+}
+.hero-btns{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;}
+.btn-primary{
+  background:var(--gold);color:var(--dark);
+  font-size:15px;font-weight:600;
+  padding:13px 26px;border-radius:10px;text-decoration:none;
+  transition:all .25s;display:inline-flex;align-items:center;gap:8px;
+}
+.btn-primary:hover{background:#d4b97e;transform:translateY(-2px);box-shadow:0 8px 24px rgba(200,169,110,0.3)}
+.btn-outline{
+  background:rgba(255,255,255,0.08);color:#fff;
+  border:1px solid rgba(255,255,255,0.2);
+  font-size:15px;font-weight:500;
+  padding:13px 26px;border-radius:10px;text-decoration:none;
+  transition:all .25s;display:inline-flex;align-items:center;gap:8px;
+}
+.btn-outline:hover{background:rgba(255,255,255,0.14);transform:translateY(-2px)}
+
+/* ── SECTION BASE ── */
+.section{padding:88px 5%;}
+.section-inner{max-width:1080px;margin:0 auto;}
+.section-label{
+  font-family:var(--mono);font-size:11px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--gold);margin-bottom:10px;
+}
+.section-title{
+  font-family:var(--serif);font-size:clamp(28px,4vw,44px);
+  color:var(--text);line-height:1.2;margin-bottom:14px;
+}
+.section-sub{font-size:16px;color:var(--muted);max-width:500px;line-height:1.8;}
+.dark-section{background:var(--dark);}
+.dark-section .section-title{color:#fff;}
+.dark-section .section-sub{color:rgba(255,255,255,0.45);}
+.dark-section .section-label{color:var(--gold);}
+.surface-section{background:var(--surface);}
+
+/* ── PROGRESS STRIP ── */
+.progress-strip{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:0 5%;
+  position:sticky;top:64px;z-index:90;
+  display:flex;align-items:center;gap:0;
+  overflow-x:auto;scrollbar-width:none;
+}
+.progress-strip::-webkit-scrollbar{display:none;}
+.prog-item{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 20px;
+  font-size:13px;font-weight:500;color:var(--muted);
+  text-decoration:none;white-space:nowrap;
+  border-bottom:2px solid transparent;
+  transition:all .2s;
+}
+.prog-item:hover{color:var(--navy);}
+.prog-item.active{color:var(--navy);border-bottom-color:var(--navy);}
+.prog-num{
+  width:22px;height:22px;border-radius:50%;
+  background:var(--navy-dim);color:var(--navy);
+  font-family:var(--mono);font-size:10px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.prog-item.active .prog-num{background:var(--navy);color:#fff;}
+.prog-arrow{color:var(--border);font-size:18px;flex-shrink:0;padding:0 2px;}
+
+/* ── FLOW SECTIONS ── */
+.flow-section{scroll-margin-top:110px;}
+
+/* ── SPLIT LAYOUT ── */
+.split{
+  display:grid;grid-template-columns:1fr 1fr;
+  gap:56px;align-items:center;
+  margin-top:48px;
+}
+.split.reverse{direction:rtl;}
+.split.reverse > *{direction:ltr;}
+@media(max-width:768px){
+  .split,.split.reverse{grid-template-columns:1fr;direction:ltr;}
+  .split.reverse > *{direction:ltr;}
+}
+
+/* ── MOCKUP PANEL ── */
+.mockup{
+  background:var(--dark);
+  border-radius:16px;
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,0.07);
+  box-shadow:0 20px 60px rgba(0,0,0,0.25);
+}
+.mockup-bar{
+  background:rgba(255,255,255,0.04);
+  padding:10px 16px;
+  display:flex;align-items:center;gap:8px;
+  border-bottom:1px solid rgba(255,255,255,0.06);
+}
+.mockup-dot{width:10px;height:10px;border-radius:50%;}
+.mockup-dot.red{background:#ff5f57;}
+.mockup-dot.yellow{background:#febc2e;}
+.mockup-dot.green{background:#28c840;}
+.mockup-url{
+  flex:1;text-align:center;
+  font-family:var(--mono);font-size:11px;color:rgba(255,255,255,0.25);
+  background:rgba(255,255,255,0.04);border-radius:6px;padding:4px 10px;
+}
+.mockup-body{padding:24px;}
+
+/* ── PHONE MOCKUP ── */
+.phone{
+  width:180px;margin:0 auto;
+  background:var(--dark);
+  border-radius:28px;
+  border:2px solid rgba(255,255,255,0.1);
+  box-shadow:0 20px 60px rgba(0,0,0,0.3);
+  overflow:hidden;
+}
+.phone-notch{
+  width:60px;height:18px;background:var(--dark);
+  border-radius:0 0 12px 12px;margin:0 auto;
+  position:relative;z-index:2;
+}
+.phone-screen{
+  background:linear-gradient(160deg,#1e3a8a,#1e40af);
+  padding:16px 14px;min-height:260px;
+}
+.phone-wrap{display:flex;justify-content:center;padding:20px 0;}
+
+/* ── STEP CARDS ── */
+.step-cards{display:flex;flex-direction:column;gap:14px;}
+.step-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:18px 20px;
+  display:flex;align-items:flex-start;gap:16px;
+  transition:all .2s;
+}
+.step-card:hover{border-color:var(--navy);box-shadow:0 4px 16px rgba(30,58,138,0.08);}
+.step-card-num{
+  width:30px;height:30px;border-radius:50%;
+  background:var(--navy);color:#fff;
+  font-family:var(--mono);font-size:11px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.step-card-body strong{display:block;font-size:0.93rem;color:var(--navy);margin-bottom:4px;}
+.step-card-body p{font-size:0.86rem;color:var(--muted);line-height:1.6;}
+
+/* ── FEATURE LIST ── */
+.feature-list{display:flex;flex-direction:column;gap:12px;margin-top:24px;}
+.feature-item{
+  display:flex;align-items:flex-start;gap:12px;
+  font-size:0.9rem;color:var(--text);
+}
+.feature-item .fi-icon{
+  width:28px;height:28px;border-radius:8px;
+  background:var(--navy-dim);color:var(--navy);
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.9rem;flex-shrink:0;margin-top:1px;
+}
+.feature-item p{line-height:1.6;}
+.feature-item p strong{color:var(--navy);}
+
+/* ── UI PREVIEW ELEMENTS ── */
+.ui-row{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;
+  background:rgba(255,255,255,0.04);
+  border-radius:8px;margin-bottom:8px;
+  border:1px solid rgba(255,255,255,0.06);
+}
+.ui-avatar{
+  width:30px;height:30px;border-radius:50%;
+  background:linear-gradient(135deg,var(--navy),var(--navy-bright));
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.7rem;color:#fff;font-weight:600;flex-shrink:0;
+}
+.ui-name{font-size:0.82rem;color:rgba(255,255,255,0.8);font-weight:500;}
+.ui-role{font-family:var(--mono);font-size:0.65rem;color:rgba(255,255,255,0.35);margin-top:1px;}
+.ui-badge{
+  margin-left:auto;
+  font-family:var(--mono);font-size:0.65rem;
+  padding:2px 8px;border-radius:100px;
+  background:rgba(106,231,183,0.15);color:#6ee7b7;
+}
+.ui-field{
+  background:rgba(255,255,255,0.04);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:8px;padding:10px 12px;
+  margin-bottom:8px;
+}
+.ui-field-label{font-size:0.65rem;color:rgba(255,255,255,0.35);font-family:var(--mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
+.ui-field-val{font-size:0.82rem;color:rgba(255,255,255,0.75);}
+.ui-stat-row{display:flex;gap:8px;margin-bottom:8px;}
+.ui-stat{
+  flex:1;background:rgba(255,255,255,0.04);border-radius:8px;
+  padding:10px 12px;border:1px solid rgba(255,255,255,0.06);
+  text-align:center;
+}
+.ui-stat-num{font-family:var(--serif);font-size:1.4rem;color:#fff;display:block;}
+.ui-stat-lbl{font-size:0.65rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1px;}
+
+.ui-form-item{
+  background:rgba(255,255,255,0.04);border-radius:8px;
+  padding:10px 12px;margin-bottom:8px;
+  border:1px solid rgba(255,255,255,0.06);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.ui-form-name{font-size:0.82rem;color:rgba(255,255,255,0.8);}
+.ui-form-dept{font-family:var(--mono);font-size:0.65rem;color:rgba(200,169,110,0.7);}
+
+.ui-sub-item{
+  background:rgba(255,255,255,0.04);border-radius:8px;
+  padding:10px 12px;margin-bottom:8px;
+  border:1px solid rgba(255,255,255,0.06);
+}
+.ui-sub-head{display:flex;justify-content:space-between;margin-bottom:4px;}
+.ui-sub-form{font-size:0.82rem;color:rgba(255,255,255,0.8);font-weight:500;}
+.ui-sub-time{font-family:var(--mono);font-size:0.65rem;color:rgba(255,255,255,0.3);}
+.ui-sub-user{font-size:0.72rem;color:rgba(255,255,255,0.4);}
+.ui-ai-badge{
+  display:inline-block;margin-top:4px;
+  font-family:var(--mono);font-size:0.62rem;
+  padding:2px 7px;border-radius:100px;
+  background:rgba(200,169,110,0.15);color:var(--gold);
+}
+
+/* ── PHONE UI ── */
+.phone-header{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;
+}
+.phone-org{font-family:var(--serif);font-size:0.9rem;color:#fff;}
+.phone-sync{font-size:0.65rem;color:rgba(255,255,255,0.35);font-family:var(--mono);}
+.phone-form-card{
+  background:rgba(255,255,255,0.08);border-radius:10px;
+  padding:12px;margin-bottom:8px;
+}
+.phone-form-title{font-size:0.8rem;color:#fff;font-weight:500;margin-bottom:4px;}
+.phone-form-dept{font-size:0.65rem;color:rgba(200,169,110,0.8);font-family:var(--mono);}
+.phone-form-arrow{float:right;color:var(--gold);margin-top:-18px;}
+.phone-status{
+  display:flex;align-items:center;gap:6px;
+  font-size:0.65rem;color:rgba(255,255,255,0.35);
+  font-family:var(--mono);margin-top:12px;padding-top:10px;
+  border-top:1px solid rgba(255,255,255,0.06);
+}
+.phone-dot{width:6px;height:6px;border-radius:50%;background:#6ee7b7;}
+
+/* ── HIGHLIGHT BOXES ── */
+.highlight-box{
+  background:var(--navy-dim);
+  border-left:4px solid var(--navy);
+  border-radius:0 var(--radius) var(--radius) 0;
+  padding:16px 20px;
+  margin-top:20px;
+  font-size:0.88rem;color:var(--navy);
+}
+.highlight-box strong{display:block;font-size:0.93rem;margin-bottom:4px;}
+
+.gold-box{
+  background:var(--gold-dim);
+  border-left:4px solid var(--gold);
+  border-radius:0 var(--radius) var(--radius) 0;
+  padding:16px 20px;
+  margin-top:20px;
+  font-size:0.88rem;color:#7a5c1e;
+}
+.gold-box strong{display:block;font-size:0.93rem;color:#5a4010;margin-bottom:4px;}
+
+.green-box{
+  background:var(--green-dim);
+  border-left:4px solid var(--green);
+  border-radius:0 var(--radius) var(--radius) 0;
+  padding:16px 20px;
+  margin-top:20px;
+  font-size:0.88rem;color:#155534;
+}
+
+/* ── FIELD TYPE GRID ── */
+.field-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+  gap:10px;margin-top:12px;
+}
+.field-chip{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:12px;text-align:center;
+  transition:all .2s;
+}
+.field-chip:hover{border-color:var(--navy);background:var(--navy-dim);}
+.field-chip-icon{font-size:1.4rem;margin-bottom:6px;display:block;}
+.field-chip-name{font-size:0.8rem;font-weight:500;color:var(--text);}
+
+/* ── CHART PREVIEW ── */
+.chart-bar-wrap{margin-top:12px;}
+.chart-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.chart-bar-label{font-size:0.72rem;color:rgba(255,255,255,0.5);width:60px;text-align:right;flex-shrink:0;}
+.chart-bar-track{flex:1;background:rgba(255,255,255,0.06);border-radius:4px;height:16px;overflow:hidden;}
+.chart-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--navy-bright),var(--gold));}
+.chart-bar-val{font-family:var(--mono);font-size:0.65rem;color:rgba(255,255,255,0.4);width:24px;}
+
+/* ── PLAN CARDS ── */
+.plan-row{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:16px;margin-top:40px;
+}
+.plan-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:28px 24px;
+  transition:all .25s;
+}
+.plan-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(30,58,138,0.1);}
+.plan-card.featured{
+  background:linear-gradient(160deg,var(--dark),var(--navy));
+  border-color:var(--gold);color:#fff;
+}
+.plan-name{font-family:var(--serif);font-size:1.2rem;margin-bottom:4px;color:var(--text);}
+.plan-card.featured .plan-name{color:#fff;}
+.plan-price{font-family:var(--serif);font-size:2rem;color:var(--navy);margin-bottom:4px;}
+.plan-card.featured .plan-price{color:var(--gold);}
+.plan-period{font-size:0.78rem;color:var(--muted);margin-bottom:16px;}
+.plan-card.featured .plan-period{color:rgba(255,255,255,0.4);}
+.plan-feats{list-style:none;font-size:0.84rem;}
+.plan-feats li{padding:6px 0;border-bottom:1px solid var(--border);color:var(--text);display:flex;gap:8px;align-items:center;}
+.plan-card.featured .plan-feats li{color:rgba(255,255,255,0.75);border-color:rgba(255,255,255,0.08);}
+.plan-feats li:last-child{border-bottom:none;}
+.plan-feats .ck{color:var(--green);}
+.plan-feats .cx{color:#cbd5e1;}
+.plan-card.featured .plan-feats .ck{color:#6ee7b7;}
+.plan-cta{
+  display:block;text-align:center;
+  margin-top:20px;padding:11px;border-radius:9px;
+  font-size:0.9rem;font-weight:600;text-decoration:none;
+  transition:all .2s;
+}
+.plan-cta-outline{border:1.5px solid var(--navy);color:var(--navy);}
+.plan-cta-outline:hover{background:var(--navy);color:#fff;}
+.plan-cta-gold{background:var(--gold);color:var(--dark);}
+.plan-cta-gold:hover{background:#d4b97e;}
+
+/* ── CTA SECTION ── */
+.cta-section{
+  background:linear-gradient(135deg,var(--dark) 0%,var(--navy) 100%);
+  padding:96px 5%;text-align:center;
+  position:relative;overflow:hidden;
+}
+.cta-section::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 60% 60% at 50% 50%,rgba(200,169,110,0.08),transparent 70%);
+}
+.cta-section h2{
+  font-family:var(--serif);font-size:clamp(28px,4vw,48px);
+  color:#fff;margin-bottom:16px;position:relative;
+}
+.cta-section p{
+  font-size:17px;color:rgba(255,255,255,0.55);
+  max-width:480px;margin:0 auto 40px;line-height:1.7;position:relative;
+}
+.cta-btns{
+  display:flex;gap:14px;flex-wrap:wrap;justify-content:center;
+  position:relative;
+}
+
+/* ── FOOTER ── */
+footer{
+  background:var(--dark);color:rgba(255,255,255,0.5);
+  padding:48px 5% 32px;
+}
+.footer-top{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  flex-wrap:wrap;gap:32px;padding-bottom:40px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+.footer-tagline{font-size:13px;color:rgba(255,255,255,0.4);max-width:240px;line-height:1.6;}
+.footer-links h4{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:14px;font-family:var(--mono);}
+.footer-links ul{list-style:none;}
+.footer-links ul li{margin-bottom:10px;}
+.footer-links ul li a{color:rgba(255,255,255,0.5);text-decoration:none;font-size:14px;transition:color .2s;}
+.footer-links ul li a:hover{color:#fff;}
+.footer-bottom{
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:12px;padding-top:28px;
+  font-size:12px;color:rgba(255,255,255,0.25);
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.hero h1,.hero p,.hero-btns{animation:fadeUp .6s ease both;}
+.hero p{animation-delay:.1s;}
+.hero-btns{animation-delay:.2s;}
+
+@media(max-width:768px){
+  nav{padding:0 4%;}
+  .nav-links a:not(.btn-nav-primary){display:none;}
+  .section{padding:64px 4%;}
+  .hero{padding:110px 4% 72px;}
+  .progress-strip{padding:0 4%;}
+  .plan-row{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="https://reportbase.app" class="nav-brand">
+    <img src="https://raw.githubusercontent.com/evdavid70/ngo-panels/main/reportbase_logo.png" alt="ReportBase">
+  </a>
+  <div class="nav-links">
+    <a href="#step-org">Setup</a>
+    <a href="#step-staff">Staff</a>
+    <a href="#step-forms">Forms</a>
+    <a href="#step-collect">Collect</a>
+    <a href="#step-review">Review</a>
+    <a href="#pricing">Pricing</a>
+    <a href="https://reportbase.app" class="btn-nav-primary">Get Started →</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">● Step-by-step walkthrough</div>
+  <h1>See exactly how<br><em>ReportBase</em> works</h1>
+  <p>From setting up your organisation to your first field report — here is everything you can do, before you sign up.</p>
+  <div class="hero-btns">
+    <a href="#step-org" class="btn-primary">Start the walkthrough ↓</a>
+    <a href="https://reportbase.app" class="btn-outline">Back to home</a>
+  </div>
+</div>
+
+<!-- PROGRESS STRIP -->
+<div class="progress-strip" id="progress-strip">
+  <a href="#step-org" class="prog-item active"><div class="prog-num">1</div> Setup Org</a>
+  <span class="prog-arrow">›</span>
+  <a href="#step-staff" class="prog-item"><div class="prog-num">2</div> Add Staff</a>
+  <span class="prog-arrow">›</span>
+  <a href="#step-forms" class="prog-item"><div class="prog-num">3</div> Build Forms</a>
+  <span class="prog-arrow">›</span>
+  <a href="#step-collect" class="prog-item"><div class="prog-num">4</div> Field Collection</a>
+  <span class="prog-arrow">›</span>
+  <a href="#step-review" class="prog-item"><div class="prog-num">5</div> Review Data</a>
+  <span class="prog-arrow">›</span>
+  <a href="#step-share" class="prog-item"><div class="prog-num">6</div> Share Reports</a>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     STEP 1 — ORG SETUP
+════════════════════════════════════════ -->
+<div class="section surface-section flow-section" id="step-org">
+  <div class="section-inner">
+    <div class="section-label">Step 1</div>
+    <div class="split">
+      <div>
+        <h2 class="section-title">Set up your organisation in minutes</h2>
+        <p class="section-sub">Once ReportBase creates your account, log in to the Client Panel — your admin dashboard. No installation needed, works in any browser.</p>
+
+        <div class="step-cards" style="margin-top:28px;">
+          <div class="step-card">
+            <div class="step-card-num">1</div>
+            <div class="step-card-body">
+              <strong>Open the Client Panel</strong>
+              <p>Go to reportbase.app/dashboard.html. Enter your organisation name and admin password.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-card-num">2</div>
+            <div class="step-card-body">
+              <strong>Upload your logo</strong>
+              <p>Your logo appears on staff phones and in your donor reports.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-card-num">3</div>
+            <div class="step-card-body">
+              <strong>Create departments</strong>
+              <p>Group your staff — e.g. Field Team, Health Workers, Teachers. Forms are assigned per department.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-card-num">4</div>
+            <div class="step-card-body">
+              <strong>Your QR code is ready</strong>
+              <p>A unique QR code is automatically generated for your organisation. Staff scan it once to link their phone.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="highlight-box">
+          <strong>No technical setup required</strong>
+          ReportBase handles the database, servers, and sync infrastructure. You only manage your people and forms.
+        </div>
+      </div>
+
+      <!-- UI MOCKUP -->
+      <div class="mockup">
+        <div class="mockup-bar">
+          <div class="mockup-dot red"></div>
+          <div class="mockup-dot yellow"></div>
+          <div class="mockup-dot green"></div>
+          <div class="mockup-url">reportbase.app/dashboard.html</div>
+        </div>
+        <div class="mockup-body">
+          <div style="font-family:'DM Serif Display',serif;font-size:1rem;color:rgba(255,255,255,0.9);margin-bottom:4px;">Overview</div>
+          <div style="font-size:0.72rem;color:rgba(255,255,255,0.3);margin-bottom:16px;font-family:'DM Mono',monospace;">Your Organisation · ACTIVE</div>
+
+          <div class="ui-stat-row">
+            <div class="ui-stat"><span class="ui-stat-num">12</span><span class="ui-stat-lbl">Users</span></div>
+            <div class="ui-stat"><span class="ui-stat-num">4</span><span class="ui-stat-lbl">Forms</span></div>
+            <div class="ui-stat"><span class="ui-stat-num">248</span><span class="ui-stat-lbl">Submissions</span></div>
+          </div>
+
+          <div style="margin-top:16px;">
+            <div style="font-size:0.65rem;color:rgba(255,255,255,0.3);font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Departments</div>
+            <div class="ui-field"><div class="ui-field-label">Department</div><div class="ui-field-val">🏢 Field Team</div></div>
+            <div class="ui-field"><div class="ui-field-label">Department</div><div class="ui-field-val">🏥 Health Workers</div></div>
+            <div class="ui-field"><div class="ui-field-label">Department</div><div class="ui-field-val">📚 Teachers</div></div>
+          </div>
+
+          <div style="margin-top:16px;text-align:center;">
+            <div style="font-size:0.65rem;color:rgba(255,255,255,0.3);font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Organisation QR Code</div>
+            <div style="background:rgba(255,255,255,0.9);border-radius:8px;padding:12px;display:inline-block;">
+              <div style="width:64px;height:64px;background:repeating-linear-gradient(0deg,#1e3a8a 0,#1e3a8a 4px,transparent 4px,transparent 8px),repeating-linear-gradient(90deg,#1e3a8a 0,#1e3a8a 4px,transparent 4px,transparent 8px);opacity:0.85;border-radius:4px;"></div>
+            </div>
+            <div style="font-size:0.65rem;color:rgba(255,255,255,0.3);margin-top:6px;">Staff scan this once</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     STEP 2 — ADD STAFF
+════════════════════════════════════════ -->
+<div class="section flow-section" id="step-staff">
+  <div class="section-inner">
+    <div class="section-label">Step 2</div>
+    <div class="split reverse">
+
+      <!-- UI MOCKUP -->
+      <div class="mockup">
+        <div class="mockup-bar">
+          <div class="mockup-dot red"></div>
+          <div class="mockup-dot yellow"></div>
+          <div class="mockup-dot green"></div>
+          <div class="mockup-url">dashboard.html → Users</div>
+        </div>
+        <div class="mockup-body">
+          <div style="font-family:'DM Serif Display',serif;font-size:1rem;color:rgba(255,255,255,0.9);margin-bottom:16px;">Staff Members</div>
+
+          <div class="ui-row">
+            <div class="ui-avatar">UA</div>
+            <div><div class="ui-name">User A</div><div class="ui-role">Field Team · Staff</div></div>
+            <div class="ui-badge">Active</div>
+          </div>
+          <div class="ui-row">
+            <div class="ui-avatar" style="background:linear-gradient(135deg,#1a5c3a,#1a7a52);">UB</div>
+            <div><div class="ui-name">User B</div><div class="ui-role">Health Workers · Staff</div></div>
+            <div class="ui-badge">Active</div>
+          </div>
+          <div class="ui-row">
+            <div class="ui-avatar" style="background:linear-gradient(135deg,#7c3aed,#a855f7);">UC</div>
+            <div><div class="ui-name">User C</div><div class="ui-role">Field Team · Supervisor</div></div>
+            <div class="ui-badge" style="background:rgba(200,169,110,0.15);color:var(--gold);">Supervisor</div>
+          </div>
+
+          <div style="margin-top:16px;background:rgba(255,255,255,0.04);border-radius:8px;padding:14px;border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:0.72rem;color:rgba(255,255,255,0.5);margin-bottom:10px;font-weight:600;">+ Add New User</div>
+            <div class="ui-field"><div class="ui-field-label">Username</div><div class="ui-field-val">user.name</div></div>
+            <div class="ui-field"><div class="ui-field-label">Department</div><div class="ui-field-val">Field Team</div></div>
+            <div class="ui-field"><div class="ui-field-label">Role</div><div class="ui-field-val">Staff</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h2 class="section-title">Add your staff — assign roles and departments</h2>
+        <p class="section-sub">Create accounts for every field worker. Assign them to departments so they only see the forms relevant to their work.</p>
+
+        <div class="feature-list">
+          <div class="feature-item">
+            <div class="fi-icon">👤</div>
+            <p><strong>Three roles available</strong> — Staff (fill forms), Supervisor (see team data), Admin (full access inside the app).</p>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">📱</div>
+            <p><strong>One phone, one account</strong> — each staff member scans the organisation QR once to link their device. No IT setup needed.</p>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">🔁</div>
+            <p><strong>Device reset in one click</strong> — if a staff member gets a new phone, reset their device binding from the dashboard. They scan the QR again and they're back.</p>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">🔐</div>
+            <p><strong>PIN + fingerprint login</strong> — staff set up a 4-digit PIN and fingerprint on their first login. Every day after, they open the app with a touch — no passwords to remember.</p>
+          </div>
+        </div>
+
+        <div class="gold-box">
+          <strong>Plan limits</strong>
+          Starter: 10 users · Basic: 20 · Growth: 30 · Pro: 100. Need more? Ask about Enterprise.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     STEP 3 — BUILD FORMS
+════════════════════════════════════════ -->
+<div class="section surface-section flow-section" id="step-forms">
+  <div class="section-inner">
+    <div class="section-label">Step 3</div>
+    <div class="split">
+      <div>
+        <h2 class="section-title">Build any form — no coding, no templates to buy</h2>
+        <p class="section-sub">Design your own data collection forms from scratch — or import from an existing spreadsheet. Publish to staff in seconds.</p>
+
+        <div class="step-cards" style="margin-top:28px;">
+          <div class="step-card">
+            <div class="step-card-num">1</div>
+            <div class="step-card-body">
+              <strong>Create a form, give it a name</strong>
+              <p>E.g. "Daily Field Visit", "Monthly School Inspection", "Beneficiary Registration".</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-card-num">2</div>
+            <div class="step-card-body">
+              <strong>Add fields — 8 types available</strong>
+              <p>Text, number, date, dropdown, checkbox, photo, GPS location, signature.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-card-num">3</div>
+            <div class="step-card-body">
+              <strong>Assign to a department</strong>
+              <p>Only staff in that department will see the form. Keep things focused.</p>
+            </div>
+          </div>
+          <div class="step-card">
+            <div class="step-card-num">4</div>
+            <div class="step-card-body">
+              <strong>Publish — staff see it within minutes</strong>
+              <p>The app syncs automatically. You can edit forms after publishing too.</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:24px;">
+          <div style="font-size:0.82rem;font-weight:600;color:var(--navy);margin-bottom:12px;">Available field types</div>
+          <div class="field-grid">
+            <div class="field-chip"><span class="field-chip-icon">📝</span><div class="field-chip-name">Text</div></div>
+            <div class="field-chip"><span class="field-chip-icon">🔢</span><div class="field-chip-name">Number</div></div>
+            <div class="field-chip"><span class="field-chip-icon">📅</span><div class="field-chip-name">Date</div></div>
+            <div class="field-chip"><span class="field-chip-icon">▼</span><div class="field-chip-name">Dropdown</div></div>
+            <div class="field-chip"><span class="field-chip-icon">☑️</span><div class="field-chip-name">Checkbox</div></div>
+            <div class="field-chip"><span class="field-chip-icon">📷</span><div class="field-chip-name">Photo</div></div>
+            <div class="field-chip"><span class="field-chip-icon">📍</span><div class="field-chip-name">GPS Location</div></div>
+            <div class="field-chip"><span class="field-chip-icon">✍️</span><div class="field-chip-name">Signature</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- UI MOCKUP -->
+      <div class="mockup">
+        <div class="mockup-bar">
+          <div class="mockup-dot red"></div>
+          <div class="mockup-dot yellow"></div>
+          <div class="mockup-dot green"></div>
+          <div class="mockup-url">dashboard.html → Forms</div>
+        </div>
+        <div class="mockup-body">
+          <div style="font-family:'DM Serif Display',serif;font-size:1rem;color:rgba(255,255,255,0.9);margin-bottom:16px;">Form Builder</div>
+
+          <div class="ui-form-item">
+            <div><div class="ui-form-name">Daily Field Visit Report</div><div class="ui-form-dept">Field Team · 8 fields</div></div>
+            <div style="font-size:0.65rem;background:rgba(106,231,183,0.15);color:#6ee7b7;padding:2px 8px;border-radius:100px;font-family:'DM Mono',monospace;">Live</div>
+          </div>
+          <div class="ui-form-item">
+            <div><div class="ui-form-name">Beneficiary Registration</div><div class="ui-form-dept">Health Workers · 12 fields</div></div>
+            <div style="font-size:0.65rem;background:rgba(106,231,183,0.15);color:#6ee7b7;padding:2px 8px;border-radius:100px;font-family:'DM Mono',monospace;">Live</div>
+          </div>
+          <div class="ui-form-item">
+            <div><div class="ui-form-name">School Inspection Checklist</div><div class="ui-form-dept">Teachers · 15 fields</div></div>
+            <div style="font-size:0.65rem;background:rgba(200,169,110,0.15);color:var(--gold);padding:2px 8px;border-radius:100px;font-family:'DM Mono',monospace;">Draft</div>
+          </div>
+
+          <div style="margin-top:16px;background:rgba(255,255,255,0.04);border-radius:8px;padding:12px;border:1px solid rgba(255,255,255,0.08);">
+            <div style="font-size:0.72rem;color:rgba(255,255,255,0.6);margin-bottom:10px;font-weight:600;">Adding field to: Daily Field Visit</div>
+            <div class="ui-field"><div class="ui-field-label">Field Type</div><div class="ui-field-val">📷 Photo</div></div>
+            <div class="ui-field"><div class="ui-field-label">Label</div><div class="ui-field-val">Site condition photo</div></div>
+            <div class="ui-field"><div class="ui-field-label">Required</div><div class="ui-field-val">Yes</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     STEP 4 — FIELD COLLECTION
+════════════════════════════════════════ -->
+<div class="section dark-section flow-section" id="step-collect">
+  <div class="section-inner">
+    <div class="section-label">Step 4</div>
+    <div class="split reverse">
+
+      <!-- PHONE MOCKUP -->
+      <div class="phone-wrap">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-header">
+              <div class="phone-org">ReportBase</div>
+              <div class="phone-sync">●  Synced</div>
+            </div>
+            <div style="font-size:0.65rem;color:rgba(255,255,255,0.35);font-family:'DM Mono',monospace;letter-spacing:1px;margin-bottom:10px;">YOUR FORMS</div>
+
+            <div class="phone-form-card">
+              <div class="phone-form-title">Daily Field Visit<span class="phone-form-arrow">›</span></div>
+              <div class="phone-form-dept">FIELD TEAM · 8 FIELDS</div>
+            </div>
+            <div class="phone-form-card">
+              <div class="phone-form-title">Site Photo Report<span class="phone-form-arrow">›</span></div>
+              <div class="phone-form-dept">FIELD TEAM · 4 FIELDS</div>
+            </div>
+
+            <div style="margin-top:14px;background:rgba(255,255,255,0.06);border-radius:8px;padding:10px;">
+              <div style="font-size:0.65rem;color:rgba(255,255,255,0.4);font-family:'DM Mono',monospace;margin-bottom:6px;">IN PROGRESS</div>
+              <div style="font-size:0.75rem;color:#fff;font-weight:500;">Daily Field Visit</div>
+              <div style="font-size:0.65rem;color:rgba(255,255,255,0.4);margin-top:4px;">📍 GPS captured · 📷 2 photos</div>
+              <div style="margin-top:8px;background:var(--gold);border-radius:6px;padding:5px;text-align:center;font-size:0.7rem;font-weight:600;color:var(--dark);">Submit →</div>
+            </div>
+
+            <div class="phone-status">
+              <div class="phone-dot"></div>
+              3 pending submissions · will sync
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h2 class="section-title" style="color:#fff;">Staff collect data in the field — online or offline</h2>
+        <p class="section-sub">Staff use the free Android app. They see only their forms, fill them out, and submit. Everything is automatic from there.</p>
+
+        <div class="feature-list" style="margin-top:28px;">
+          <div class="feature-item">
+            <div class="fi-icon">📶</div>
+            <p style="color:rgba(255,255,255,0.75);"><strong style="color:#fff;">Works offline</strong> — submissions are saved on the phone and sync automatically when connectivity returns. No data is ever lost.</p>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">📍</div>
+            <p style="color:rgba(255,255,255,0.75);"><strong style="color:#fff;">GPS captured automatically</strong> — every submission records the exact location where the form was filled. No manual entry.</p>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">📷</div>
+            <p style="color:rgba(255,255,255,0.75);"><strong style="color:#fff;">Photo and signature fields</strong> — staff capture evidence photos and collect signatures directly in the form.</p>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">🌍</div>
+            <p style="color:rgba(255,255,255,0.75);"><strong style="color:#fff;">13 languages</strong> — the app is fully translated into English, Urdu, Arabic, French, Bengali, Hindi, and more.</p>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">🔐</div>
+            <p style="color:rgba(255,255,255,0.75);"><strong style="color:#fff;">Fingerprint + PIN login</strong> — staff open the app with a fingerprint touch or 4-digit PIN. Fast and secure.</p>
+          </div>
+        </div>
+
+        <div style="background:rgba(200,169,110,0.1);border-left:4px solid var(--gold);border-radius:0 10px 10px 0;padding:16px 20px;margin-top:20px;font-size:0.88rem;color:rgba(255,255,255,0.65);">
+          <strong style="color:var(--gold);display:block;margin-bottom:4px;">Free on Google Play</strong>
+          Staff download the ReportBase app for free. No app purchase, no per-device fee.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     STEP 5 — REVIEW DATA
+════════════════════════════════════════ -->
+<div class="section surface-section flow-section" id="step-review">
+  <div class="section-inner">
+    <div class="section-label">Step 5</div>
+    <div class="split">
+      <div>
+        <h2 class="section-title">Review every submission — filter, export, flag</h2>
+        <p class="section-sub">All field data lands in your dashboard the moment staff submit. Browse, filter, export, and let AI flag quality issues automatically.</p>
+
+        <div class="feature-list" style="margin-top:28px;">
+          <div class="feature-item">
+            <div class="fi-icon">🔍</div>
+            <p><strong>Filter by anything</strong> — search by form, staff member, date range, or department. Find exactly what you need.</p>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">📊</div>
+            <p><strong>Export to Excel or CSV</strong> — download any filtered set as a spreadsheet for your own analysis or reporting.</p>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">🗺️</div>
+            <p><strong>Map view</strong> — see every submission as a GPS pin on a live map. Instantly verify field coverage.</p>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">🤖</div>
+            <p><strong>AI quality review (Pro)</strong> — AI checks each submission for completeness and relevance. It never changes data — just flags submissions that need attention.</p>
+          </div>
+        </div>
+
+        <div class="highlight-box">
+          <strong>AI Review never blocks submissions</strong>
+          Staff submit first. AI review runs quietly in the background. Your data flow is never interrupted.
+        </div>
+      </div>
+
+      <!-- UI MOCKUP -->
+      <div class="mockup">
+        <div class="mockup-bar">
+          <div class="mockup-dot red"></div>
+          <div class="mockup-dot yellow"></div>
+          <div class="mockup-dot green"></div>
+          <div class="mockup-url">dashboard.html → Submissions</div>
+        </div>
+        <div class="mockup-body">
+          <div style="font-family:'DM Serif Display',serif;font-size:1rem;color:rgba(255,255,255,0.9);margin-bottom:4px;">Submissions</div>
+          <div style="font-size:0.65rem;color:rgba(255,255,255,0.3);font-family:'DM Mono',monospace;margin-bottom:14px;">248 total · last 30 days</div>
+
+          <div class="chart-bar-wrap">
+            <div style="font-size:0.65rem;color:rgba(255,255,255,0.3);font-family:'DM Mono',monospace;letter-spacing:1px;margin-bottom:10px;">SUBMISSIONS BY FORM</div>
+            <div class="chart-bar-row">
+              <div class="chart-bar-label">Field Visit</div>
+              <div class="chart-bar-track"><div class="chart-bar-fill" style="width:82%"></div></div>
+              <div class="chart-bar-val">124</div>
+            </div>
+            <div class="chart-bar-row">
+              <div class="chart-bar-label">Beneficiary</div>
+              <div class="chart-bar-track"><div class="chart-bar-fill" style="width:60%"></div></div>
+              <div class="chart-bar-val">88</div>
+            </div>
+            <div class="chart-bar-row">
+              <div class="chart-bar-label">Inspection</div>
+              <div class="chart-bar-track"><div class="chart-bar-fill" style="width:24%"></div></div>
+              <div class="chart-bar-val">36</div>
+            </div>
+          </div>
+
+          <div style="margin-top:14px;">
+            <div class="ui-sub-item">
+              <div class="ui-sub-head"><span class="ui-sub-form">Daily Field Visit</span><span class="ui-sub-time">2h ago</span></div>
+              <div class="ui-sub-user">User A · Field Team</div>
+              <div class="ui-ai-badge">🤖 AI: Good quality</div>
+            </div>
+            <div class="ui-sub-item">
+              <div class="ui-sub-head"><span class="ui-sub-form">Beneficiary Registration</span><span class="ui-sub-time">4h ago</span></div>
+              <div class="ui-sub-user">User B · Health Workers</div>
+              <div class="ui-ai-badge" style="background:rgba(248,113,113,0.15);color:#fca5a5;">🤖 AI: Review answers</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     STEP 6 — SHARE REPORTS
+════════════════════════════════════════ -->
+<div class="section flow-section" id="step-share">
+  <div class="section-inner">
+    <div class="section-label">Step 6</div>
+    <div class="split reverse">
+
+      <!-- UI MOCKUP -->
+      <div class="mockup">
+        <div class="mockup-bar">
+          <div class="mockup-dot red"></div>
+          <div class="mockup-dot yellow"></div>
+          <div class="mockup-dot green"></div>
+          <div class="mockup-url">reportbase.app/report-portal.html</div>
+        </div>
+        <div class="mockup-body">
+          <div style="font-family:'DM Serif Display',serif;font-size:1rem;color:rgba(255,255,255,0.9);margin-bottom:4px;">Report Portal</div>
+          <div style="font-size:0.65rem;color:rgba(255,255,255,0.3);font-family:'DM Mono',monospace;margin-bottom:14px;">Your Organisation · Read Only</div>
+
+          <div style="background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid rgba(255,255,255,0.06);padding:10px;margin-bottom:8px;">
+            <div style="font-size:0.65rem;color:rgba(255,255,255,0.3);font-family:'DM Mono',monospace;letter-spacing:1px;margin-bottom:8px;">OVERVIEW</div>
+            <div class="ui-stat-row">
+              <div class="ui-stat"><span class="ui-stat-num">248</span><span class="ui-stat-lbl">Reports</span></div>
+              <div class="ui-stat"><span class="ui-stat-num">12</span><span class="ui-stat-lbl">Staff</span></div>
+              <div class="ui-stat"><span class="ui-stat-num">3</span><span class="ui-stat-lbl">Depts</span></div>
+            </div>
+          </div>
+
+          <div style="background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid rgba(255,255,255,0.06);padding:10px;margin-bottom:8px;">
+            <div style="font-size:0.65rem;color:rgba(255,255,255,0.3);font-family:'DM Mono',monospace;letter-spacing:1px;margin-bottom:8px;">FIELD MAP</div>
+            <div style="height:80px;background:linear-gradient(135deg,rgba(30,58,138,0.4),rgba(26,90,58,0.3));border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">🗺️</div>
+            <div style="font-size:0.65rem;color:rgba(255,255,255,0.25);margin-top:6px;text-align:center;">248 GPS pins</div>
+          </div>
+
+          <div style="font-size:0.72rem;color:rgba(255,255,255,0.25);text-align:center;margin-top:8px;font-family:'DM Mono',monospace;">👁 VIEW ONLY · cannot edit anything</div>
+        </div>
+      </div>
+
+      <div>
+        <h2 class="section-title">Share a live report portal with donors and partners</h2>
+        <p class="section-sub">Give donors and senior management a read-only window into your field activity — without giving them dashboard access.</p>
+
+        <div class="feature-list" style="margin-top:28px;">
+          <div class="feature-item">
+            <div class="fi-icon">👁️</div>
+            <p><strong>Completely read-only</strong> — portal viewers can see charts, maps, and submissions. They cannot add, edit, or delete anything.</p>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">📊</div>
+            <p><strong>Live charts and trends</strong> — submissions over time, breakdowns by form and department, automatically updated.</p>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">🗺️</div>
+            <p><strong>GPS map</strong> — every field submission shown as a pin. Donors can see exactly where your team is working.</p>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">🔗</div>
+            <p><strong>Share just a link and password</strong> — no accounts, no app installs for your donors. They open it in any browser.</p>
+          </div>
+        </div>
+
+        <div class="green-box">
+          <strong>Available on Growth and Pro plans</strong>
+          The Report Portal is included with Growth ($49/mo) and Pro ($99/mo) — perfect for organisations with donor accountability requirements.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     PRICING
+════════════════════════════════════════ -->
+<div class="section dark-section" id="pricing">
+  <div class="section-inner">
+    <div class="section-label">Pricing</div>
+    <h2 class="section-title">Simple, honest pricing</h2>
+    <p class="section-sub">All plans include the Android app, unlimited forms, and unlimited submissions. No hidden fees.</p>
+
+    <div class="plan-row">
+      <div class="plan-card">
+        <div class="plan-name">Starter</div>
+        <div class="plan-price" style="color:var(--gold);">$19<span style="font-size:1rem;color:var(--muted);font-family:var(--sans);">/mo</span></div>
+        <div class="plan-period" style="color:rgba(255,255,255,0.35);">or $182/yr — save 20%</div>
+        <ul class="plan-feats">
+          <li><span class="ck">✓</span> 10 staff</li>
+          <li><span class="ck">✓</span> Unlimited forms</li>
+          <li><span class="ck">✓</span> GPS + photos</li>
+          <li><span class="cx">–</span> Report Portal</li>
+          <li><span class="cx">–</span> AI Review</li>
+        </ul>
+        <a href="https://reportbase.app" class="plan-cta" style="background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.15);">Get started</a>
+      </div>
+
+      <div class="plan-card">
+        <div class="plan-name">Basic</div>
+        <div class="plan-price" style="color:var(--gold);">$35<span style="font-size:1rem;color:var(--muted);font-family:var(--sans);">/mo</span></div>
+        <div class="plan-period" style="color:rgba(255,255,255,0.35);">or $336/yr — save 20%</div>
+        <ul class="plan-feats">
+          <li><span class="ck">✓</span> 20 staff</li>
+          <li><span class="ck">✓</span> Unlimited forms</li>
+          <li><span class="ck">✓</span> GPS + photos</li>
+          <li><span class="cx">–</span> Report Portal</li>
+          <li><span class="cx">–</span> AI Review</li>
+        </ul>
+        <a href="https://reportbase.app" class="plan-cta" style="background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.15);">Get started</a>
+      </div>
+
+      <div class="plan-card featured">
+        <div style="font-family:'DM Mono',monospace;font-size:0.65rem;background:var(--gold);color:var(--dark);padding:3px 12px;border-radius:100px;display:inline-block;margin-bottom:10px;letter-spacing:1px;">MOST POPULAR</div>
+        <div class="plan-name">Growth</div>
+        <div class="plan-price">$49<span style="font-size:1rem;color:rgba(255,255,255,0.4);font-family:var(--sans);">/mo</span></div>
+        <div class="plan-period">or $470/yr — save 20%</div>
+        <ul class="plan-feats">
+          <li><span class="ck">✓</span> 30 staff</li>
+          <li><span class="ck">✓</span> Unlimited forms</li>
+          <li><span class="ck">✓</span> GPS + photos</li>
+          <li><span class="ck">✓</span> Report Portal</li>
+          <li><span class="cx">–</span> AI Review</li>
+        </ul>
+        <a href="https://reportbase.app" class="plan-cta plan-cta-gold">Get started</a>
+      </div>
+
+      <div class="plan-card">
+        <div class="plan-name">Pro</div>
+        <div class="plan-price" style="color:var(--gold);">$99<span style="font-size:1rem;color:var(--muted);font-family:var(--sans);">/mo</span></div>
+        <div class="plan-period" style="color:rgba(255,255,255,0.35);">or $950/yr — save 20%</div>
+        <ul class="plan-feats">
+          <li><span class="ck">✓</span> 100 staff</li>
+          <li><span class="ck">✓</span> Unlimited forms</li>
+          <li><span class="ck">✓</span> GPS + photos</li>
+          <li><span class="ck">✓</span> Report Portal</li>
+          <li><span class="ck">✓</span> AI Review</li>
+        </ul>
+        <a href="https://reportbase.app" class="plan-cta" style="background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.15);">Get started</a>
+      </div>
+    </div>
+
+    <p style="text-align:center;margin-top:24px;font-size:0.85rem;color:rgba(255,255,255,0.3);">All plans include a free trial. No credit card required to start. Enterprise plans available for unlimited users.</p>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════
+     CTA
+════════════════════════════════════════ -->
+<div class="cta-section">
+  <h2>Ready to see it with your own data?</h2>
+  <p>Start a free trial — no credit card, no setup fees. Your organisation can be collecting data today.</p>
+  <div class="cta-btns">
+    <a href="https://reportbase.app" class="btn-primary">Start free trial →</a>
+    <a href="dashboard-guide.html" class="btn-outline">📖 Read the full guide</a>
+  </div>
+</div>
+
+
+<!-- FOOTER -->
+<footer>
+  <div style="max-width:1100px;margin:0 auto;">
+    <div class="footer-top">
+      <div>
+        <img src="https://raw.githubusercontent.com/evdavid70/ngo-panels/main/reportbase_icon.png" alt="ReportBase" style="height:44px;width:auto;margin-bottom:12px;display:block;">
+        <div class="footer-tagline">The field reporting system built for organisations that need real accountability.</div>
+      </div>
+      <div class="footer-links">
+        <h4>System</h4>
+        <ul>
+          <li><a href="https://reportbase.app/dashboard.html">Client Panel</a></li>
+          <li><a href="https://reportbase.app/report-portal.html">Report Portal</a></li>
+          <li><a href="https://play.google.com/store/apps/details?id=com.evdavid.shepreportapp">Android App</a></li>
+        </ul>
+      </div>
+      <div class="footer-links">
+        <h4>Learn</h4>
+        <ul>
+          <li><a href="how-it-works.html">How it Works</a></li>
+          <li><a href="dashboard-guide.html">Dashboard Guide</a></li>
+          <li><a href="staff-guide.html">Staff Guide</a></li>
+        </ul>
+      </div>
+      <div class="footer-links">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="https://reportbase.app#pricing">Pricing</a></li>
+          <li><a href="mailto:hello@reportbase.app">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 ReportBase · All rights reserved</span>
+      <span>Built for organisations that make a difference</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Progress strip scroll highlight
+const sections = ['step-org','step-staff','step-forms','step-collect','step-review','step-share'];
+const links = document.querySelectorAll('.prog-item');
+window.addEventListener('scroll', () => {
+  let current = sections[0];
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if(el && window.scrollY >= el.offsetTop - 130) current = id;
+  });
+  links.forEach(l => {
+    l.classList.remove('active');
+    if(l.getAttribute('href') === '#' + current) l.classList.add('active');
+  });
+});
+// Smooth scroll
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const t = document.querySelector(a.getAttribute('href'));
+    if(t){ e.preventDefault(); t.scrollIntoView({behavior:'smooth'}); }
+  });
+});
+</script>
+</body>
+</html>

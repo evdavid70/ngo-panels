@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReportBase — Staff Guide</title>
+<meta name="description" content="How to use the ReportBase Android app — for field staff. Login, fill forms, submit data, and more.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#f7f8fc;
+  --surface:#ffffff;
+  --border:rgba(0,0,0,0.08);
+  --text:#1a1f2e;
+  --muted:#7a8199;
+  --navy:#1e3a8a;
+  --navy-dim:#eff2fd;
+  --gold:#c8a96e;
+  --gold-dim:#fef3e2;
+  --dark:#0f172a;
+  --green:#1a7a52;
+  --green-dim:#e6f4ee;
+  --serif:'DM Serif Display',Georgia,serif;
+  --sans:'DM Sans',system-ui,sans-serif;
+  --mono:'DM Mono',monospace;
+  --radius:12px;
+}
+
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.7;overflow-x:hidden}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(15,23,42,0.96);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(200,169,110,0.15);
+  padding:0 5%;
+  display:flex;align-items:center;justify-content:space-between;
+  height:64px;
+}
+.nav-brand{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.nav-brand img{height:36px;width:auto;}
+.nav-links{display:flex;align-items:center;gap:8px;}
+.nav-links a{
+  color:rgba(255,255,255,0.7);text-decoration:none;
+  font-size:14px;font-weight:500;padding:8px 14px;border-radius:8px;
+  transition:all .2s;
+}
+.nav-links a:hover{color:#fff;background:rgba(255,255,255,0.08)}
+.btn-nav-primary{
+  background:var(--gold)!important;color:var(--dark)!important;
+  font-weight:600!important;padding:8px 18px!important;
+}
+.btn-nav-primary:hover{background:#d4b97e!important}
+
+/* ── NAV DROPDOWN ── */
+.nav-dropdown{position:relative;}
+.nav-dropdown-toggle{
+  color:rgba(255,255,255,0.7);text-decoration:none;
+  font-size:14px;font-weight:500;padding:8px 14px;border-radius:8px;
+  transition:all .2s;cursor:pointer;
+  display:flex;align-items:center;gap:5px;
+  background:none;border:none;font-family:var(--sans);
+}
+.nav-dropdown-toggle:hover{color:#fff;background:rgba(255,255,255,0.08)}
+.nav-dropdown-toggle .chevron{font-size:10px;opacity:0.6;transition:transform .2s;}
+.nav-dropdown.open .chevron{transform:rotate(180deg);}
+.nav-dropdown-menu{
+  position:absolute;top:calc(100% + 8px);right:0;
+  background:rgba(15,23,42,0.98);
+  border:1px solid rgba(200,169,110,0.2);
+  border-radius:12px;padding:8px;min-width:210px;
+  opacity:0;pointer-events:none;
+  transform:translateY(-6px);transition:all .2s;
+  box-shadow:0 12px 40px rgba(0,0,0,0.4);z-index:200;
+}
+.nav-dropdown.open .nav-dropdown-menu{opacity:1;pointer-events:all;transform:translateY(0);}
+.nav-dropdown-menu a{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;border-radius:8px;
+  color:rgba(255,255,255,0.7);text-decoration:none;
+  font-size:13px;font-weight:500;transition:all .15s;
+}
+.nav-dropdown-menu a:hover{background:rgba(255,255,255,0.08);color:#fff;}
+.nav-dropdown-menu a.active-guide{background:rgba(200,169,110,0.1);color:var(--gold);}
+.nav-dropdown-menu .dm-icon{font-size:15px;width:20px;text-align:center;}
+.nav-dropdown-divider{height:1px;background:rgba(255,255,255,0.07);margin:6px 0;}
+
+/* ── HERO ── */
+.hero{
+  background:linear-gradient(160deg,var(--dark) 0%,#1e3a8a 55%,#1e40af 100%);
+  padding:120px 5% 80px;text-align:center;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 70% 50% at 50% 40%,rgba(200,169,110,0.08),transparent 70%);
+  pointer-events:none;
+}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(200,169,110,0.12);border:1px solid rgba(200,169,110,0.3);
+  color:var(--gold);font-size:12px;font-weight:500;letter-spacing:1px;
+  padding:6px 16px;border-radius:100px;margin-bottom:24px;
+  font-family:var(--mono);text-transform:uppercase;
+}
+.hero h1{
+  font-family:var(--serif);font-size:clamp(32px,5vw,58px);
+  color:#fff;line-height:1.15;margin-bottom:16px;
+}
+.hero p{
+  font-size:clamp(15px,1.8vw,18px);color:rgba(255,255,255,0.6);
+  max-width:500px;margin:0 auto 36px;font-weight:300;line-height:1.8;
+}
+.hero-download{
+  display:inline-flex;align-items:center;gap:10px;
+  background:var(--gold);color:var(--dark);
+  font-size:15px;font-weight:600;
+  padding:13px 26px;border-radius:10px;text-decoration:none;
+  transition:all .25s;
+}
+.hero-download:hover{background:#d4b97e;transform:translateY(-2px);}
+
+/* ── SIDEBAR LAYOUT ── */
+.layout{display:flex;min-height:calc(100vh - 64px);}
+
+.sidebar{
+  width:230px;flex-shrink:0;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  padding:28px 0;
+  position:sticky;top:64px;
+  height:calc(100vh - 64px);
+  overflow-y:auto;
+}
+.sidebar-label{
+  font-family:var(--mono);font-size:0.62rem;letter-spacing:0.12em;
+  color:var(--muted);text-transform:uppercase;
+  padding:0 20px 6px;margin-top:14px;
+}
+.sidebar-label:first-child{margin-top:0;}
+.sidebar a{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 20px;color:var(--text);text-decoration:none;
+  font-size:0.87rem;font-weight:500;
+  border-left:3px solid transparent;transition:all .15s;
+}
+.sidebar a:hover{background:#f1f5ff;border-left-color:var(--navy);color:var(--navy);}
+.sidebar a .s-icon{font-size:1rem;width:20px;text-align:center;}
+
+/* ── CONTENT ── */
+.content{flex:1;padding:48px 52px;max-width:820px;}
+
+/* ── SECTIONS ── */
+.section{margin-bottom:52px;scroll-margin-top:90px;}
+.section-header{
+  display:flex;align-items:center;gap:14px;
+  margin-bottom:20px;padding-bottom:14px;
+  border-bottom:2px solid var(--border);
+}
+.section-icon{
+  width:40px;height:40px;
+  background:linear-gradient(135deg,var(--navy),#1e40af);
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;flex-shrink:0;
+}
+.section-title{font-family:var(--serif);font-size:1.3rem;color:var(--navy);}
+
+/* ── STEP CARDS ── */
+.steps{display:flex;flex-direction:column;gap:12px;}
+.step{
+  display:flex;gap:16px;align-items:flex-start;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:16px 20px;
+  transition:border-color .15s;
+}
+.step:hover{border-color:var(--navy);}
+.step-num{
+  width:28px;height:28px;background:var(--navy);color:#fff;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:0.78rem;font-weight:600;
+  flex-shrink:0;margin-top:2px;
+}
+.step-body strong{font-size:0.92rem;color:var(--navy);display:block;margin-bottom:3px;}
+.step-body p{font-size:0.87rem;color:var(--muted);line-height:1.6;}
+
+/* ── CARDS ── */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:20px 24px;margin-bottom:14px;
+}
+.card h3{font-size:0.93rem;font-weight:600;color:var(--navy);margin-bottom:8px;}
+.card p{font-size:0.88rem;color:var(--text);line-height:1.65;}
+
+/* ── TIP / WARN / NOTE ── */
+.tip,.warn,.note{
+  border-radius:var(--radius);padding:13px 18px;
+  font-size:0.87rem;margin-top:14px;
+  display:flex;gap:10px;align-items:flex-start;
+}
+.tip{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;}
+.warn{background:#fffbeb;border:1px solid #fde68a;color:#92400e;}
+.note{background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;}
+
+/* ── PHONE VISUAL ── */
+.phone-row{display:flex;gap:20px;flex-wrap:wrap;margin-top:16px;}
+.phone-mini{
+  background:var(--dark);border-radius:20px;
+  border:2px solid rgba(255,255,255,0.1);
+  overflow:hidden;width:140px;flex-shrink:0;
+  box-shadow:0 8px 24px rgba(0,0,0,0.2);
+}
+.phone-mini-notch{
+  width:44px;height:14px;background:var(--dark);
+  border-radius:0 0 10px 10px;margin:0 auto;
+}
+.phone-mini-screen{
+  background:linear-gradient(160deg,#1e3a8a,#1e40af);
+  padding:12px 10px;min-height:200px;
+}
+.phone-mini-label{
+  font-size:0.62rem;color:rgba(255,255,255,0.4);
+  font-family:var(--mono);letter-spacing:1px;
+  text-transform:uppercase;margin-bottom:8px;
+}
+.phone-mini-title{
+  font-family:var(--serif);font-size:0.85rem;color:#fff;
+  margin-bottom:12px;
+}
+.phone-mini-field{
+  background:rgba(255,255,255,0.06);border-radius:6px;
+  padding:7px 8px;margin-bottom:6px;
+  border:1px solid rgba(255,255,255,0.08);
+}
+.phone-mini-field-lbl{font-size:0.58rem;color:rgba(255,255,255,0.35);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px;}
+.phone-mini-field-val{font-size:0.75rem;color:rgba(255,255,255,0.8);margin-top:2px;}
+.phone-mini-btn{
+  background:var(--gold);border-radius:6px;
+  padding:7px;text-align:center;
+  font-size:0.72rem;font-weight:600;color:var(--dark);
+  margin-top:8px;
+}
+.phone-mini-caption{
+  font-size:0.78rem;color:var(--muted);
+  text-align:center;margin-top:8px;line-height:1.5;
+}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;font-size:0.87rem;margin-top:10px;}
+.tbl th{
+  background:var(--navy);color:#fff;padding:10px 14px;
+  text-align:left;font-weight:500;
+  font-family:var(--mono);font-size:0.75rem;letter-spacing:0.04em;
+}
+.tbl th:first-child{border-radius:8px 0 0 0;}
+.tbl th:last-child{border-radius:0 8px 0 0;}
+.tbl td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top;}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:nth-child(even) td{background:#f8faff;}
+
+/* ── FOOTER ── */
+footer{
+  background:var(--dark);color:rgba(255,255,255,0.5);
+  padding:40px 5% 28px;
+}
+.footer-bottom{
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:12px;
+  font-size:12px;color:rgba(255,255,255,0.25);
+}
+.footer-bottom a{color:rgba(255,255,255,0.4);text-decoration:none;}
+.footer-bottom a:hover{color:#fff;}
+
+@media(max-width:768px){
+  .sidebar{display:none;}
+  .content{padding:28px 20px;}
+  .hero{padding:110px 4% 60px;}
+  nav{padding:0 4%;}
+  .nav-links a:not(.btn-nav-primary){display:none;}
+  .phone-row{justify-content:center;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="https://reportbase.app" class="nav-brand">
+    <img src="https://raw.githubusercontent.com/evdavid70/ngo-panels/main/reportbase_logo.png" alt="ReportBase">
+  </a>
+  <div class="nav-links">
+    <a href="https://reportbase.app#how">How it works</a>
+    <a href="https://reportbase.app#features">Features</a>
+    <a href="https://reportbase.app#pricing">Pricing</a>
+    <div class="nav-dropdown" id="guideDropdown">
+      <button class="nav-dropdown-toggle" onclick="toggleGuideMenu()">
+        Guides <span class="chevron">▼</span>
+      </button>
+      <div class="nav-dropdown-menu">
+        <a href="how-it-works.html"><span class="dm-icon">👀</span> Product Walkthrough</a>
+        <a href="dashboard-guide.html"><span class="dm-icon">🏢</span> Dashboard Guide</a>
+        <div class="nav-dropdown-divider"></div>
+        <a href="staff-guide.html" class="active-guide"><span class="dm-icon">📱</span> Staff Guide</a>
+      </div>
+    </div>
+    <a href="https://reportbase.app#access" class="btn-nav-primary">Login</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">📱 For Field Staff</div>
+  <h1>Using the<br>ReportBase App</h1>
+  <p>Everything you need to know — from installing the app to submitting your first report in the field.</p>
+  <a href="https://play.google.com/store/apps/details?id=com.evdavid.shepreportapp" class="hero-download" target="_blank">
+    ↓ Download on Google Play
+  </a>
+</div>
+
+<!-- BODY -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" style="position:sticky;">
+    <div class="sidebar-label">Getting Started</div>
+    <a href="#install"><span class="s-icon">📲</span> Install the App</a>
+    <a href="#setup"><span class="s-icon">🔑</span> First-Time Setup</a>
+    <a href="#login"><span class="s-icon">👆</span> Daily Login</a>
+
+    <div class="sidebar-label">Using the App</div>
+    <a href="#forms"><span class="s-icon">📋</span> Finding Your Forms</a>
+    <a href="#fill"><span class="s-icon">✍️</span> Filling a Form</a>
+    <a href="#submit"><span class="s-icon">📤</span> Submitting</a>
+    <a href="#offline"><span class="s-icon">📶</span> Offline Use</a>
+
+    <div class="sidebar-label">My Account</div>
+    <a href="#submissions"><span class="s-icon">📨</span> My Submissions</a>
+    <a href="#pin"><span class="s-icon">🔐</span> PIN & Fingerprint</a>
+    <a href="#language"><span class="s-icon">🌍</span> Language</a>
+    <a href="#password"><span class="s-icon">🔒</span> Change Password</a>
+
+    <div class="sidebar-label">Help</div>
+    <a href="#faq"><span class="s-icon">💡</span> FAQ</a>
+  </nav>
+
+  <!-- CONTENT -->
+  <main class="content">
+
+    <!-- ── INSTALL ── -->
+    <section class="section" id="install">
+      <div class="section-header">
+        <div class="section-icon">📲</div>
+        <h2 class="section-title">Install the App</h2>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Open Google Play Store on your Android phone</strong>
+            <p>Search for <span style="font-family:var(--mono);font-size:0.85rem;color:var(--navy);">ReportBase</span> or ask your admin to share the direct link.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Tap Install</strong>
+            <p>The app is free to download. No payment required.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Open the app once installed</strong>
+            <p>You will see the setup screen — ready for your first scan.</p>
+          </div>
+        </div>
+      </div>
+      <div class="tip">
+        <span>✅</span>
+        <span>ReportBase requires Android 8.0 or later. Most phones from 2018 onwards are supported.</span>
+      </div>
+    </section>
+
+    <!-- ── FIRST TIME SETUP ── -->
+    <section class="section" id="setup">
+      <div class="section-header">
+        <div class="section-icon">🔑</div>
+        <h2 class="section-title">First-Time Setup</h2>
+      </div>
+      <p style="margin-bottom:16px;font-size:0.9rem;">You only do this once — when you first install the app or get a new phone.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Scan the Organisation QR code</strong>
+            <p>Your admin will give you a QR code — printed or sent via WhatsApp. Tap <em>Scan QR</em> in the app and point your camera at it.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Enter your username and password</strong>
+            <p>Your admin gives you these. The username is usually your name or initials (e.g. <span style="font-family:var(--mono);font-size:0.85rem;">john.field</span>).</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Set up fingerprint login (recommended)</strong>
+            <p>The app will ask if you want to use your fingerprint. Tap <em>Enable</em> — this means you never type your password again.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>Set a 4-digit PIN as backup</strong>
+            <p>Choose any 4 digits you will remember. Used when fingerprint is not available.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <strong>You are in — your forms will appear</strong>
+            <p>The app syncs your assigned forms automatically. This takes a few seconds on first load.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="warn">
+        <span>⚠️</span>
+        <span>Keep your password safe. Do not share it with anyone — not even your admin. If you forget it, ask your admin to reset it for you.</span>
+      </div>
+    </section>
+
+    <!-- ── DAILY LOGIN ── -->
+    <section class="section" id="login">
+      <div class="section-header">
+        <div class="section-icon">👆</div>
+        <h2 class="section-title">Daily Login</h2>
+      </div>
+      <p style="margin-bottom:16px;font-size:0.9rem;">After first setup, you never enter your password again. Every day works like this:</p>
+
+      <div class="phone-row">
+        <div>
+          <div class="phone-mini">
+            <div class="phone-mini-notch"></div>
+            <div class="phone-mini-screen">
+              <div class="phone-mini-label">Login</div>
+              <div style="text-align:center;padding:16px 0;">
+                <div style="font-size:2rem;margin-bottom:8px;">👆</div>
+                <div style="font-size:0.75rem;color:#fff;font-weight:500;">Touch to login</div>
+                <div style="font-size:0.62rem;color:rgba(255,255,255,0.4);margin-top:4px;">Use your fingerprint</div>
+              </div>
+              <div style="text-align:center;margin-top:8px;">
+                <div style="font-size:0.62rem;color:rgba(255,255,255,0.3);">or enter PIN</div>
+                <div style="display:flex;justify-content:center;gap:8px;margin-top:8px;">
+                  <div style="width:12px;height:12px;border-radius:50%;background:var(--gold);"></div>
+                  <div style="width:12px;height:12px;border-radius:50%;background:var(--gold);"></div>
+                  <div style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.2);"></div>
+                  <div style="width:12px;height:12px;border-radius:50%;background:rgba(255,255,255,0.2);"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="phone-mini-caption">Open app → instant access</div>
+        </div>
+        <div style="flex:1;min-width:200px;">
+          <div class="card">
+            <h3>Fingerprint login</h3>
+            <p>Open the app → fingerprint prompt appears → touch sensor → you're in. Takes less than 2 seconds.</p>
+          </div>
+          <div class="card">
+            <h3>PIN login</h3>
+            <p>If fingerprint fails or is unavailable → tap <em>Use PIN</em> → enter your 4 digits → you're in.</p>
+          </div>
+          <div class="card">
+            <h3>After signing out</h3>
+            <p>The fingerprint/PIN prompt appears again — not the full login form. You don't need to scan the QR code again.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="note">
+        <span>ℹ️</span>
+        <span>The full login form (with username + password) only appears if your device data was wiped or you reinstalled the app. In that case, ask your admin for the organisation QR code to set up again.</span>
+      </div>
+    </section>
+
+    <!-- ── FINDING FORMS ── -->
+    <section class="section" id="forms">
+      <div class="section-header">
+        <div class="section-icon">📋</div>
+        <h2 class="section-title">Finding Your Forms</h2>
+      </div>
+      <p style="margin-bottom:16px;font-size:0.9rem;">After login you land on the Staff Dashboard. Your forms are listed here.</p>
+
+      <div class="card">
+        <h3>Why do I only see some forms?</h3>
+        <p>Your admin assigns forms to departments. You see only the forms for your department. If a form is missing, ask your admin to check your department assignment.</p>
+      </div>
+
+      <div class="card">
+        <h3>Forms not showing up?</h3>
+        <p>The app needs an internet connection to sync new forms. Connect to WiFi or mobile data, wait a few seconds, then pull down to refresh the dashboard.</p>
+      </div>
+
+      <div class="card">
+        <h3>External forms</h3>
+        <p>Some organisations use forms imported from external sources. These appear in a separate section on your dashboard, labelled <em>External Forms</em>.</p>
+      </div>
+    </section>
+
+    <!-- ── FILLING A FORM ── -->
+    <section class="section" id="fill">
+      <div class="section-header">
+        <div class="section-icon">✍️</div>
+        <h2 class="section-title">Filling a Form</h2>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Tap the form name</strong>
+            <p>From your dashboard, tap the form you want to fill.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Fill each field</strong>
+            <p>Work through the fields one by one. Required fields are marked — you cannot submit until they are filled.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>For photo fields — tap to take or pick a photo</strong>
+            <p>The camera opens. Take a new photo or choose from your gallery.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>For GPS fields — tap to capture location</strong>
+            <p>The app records your current coordinates automatically. Make sure location is enabled on your phone.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <strong>For signature fields — draw your signature</strong>
+            <p>Use your finger to sign directly on screen. Tap <em>Clear</em> to redo.</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <div style="font-size:0.85rem;font-weight:600;color:var(--navy);margin-bottom:12px;">Field types you may see</div>
+        <table class="tbl">
+          <thead>
+            <tr><th>Field</th><th>What to do</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>📝 Text</td><td>Type your answer</td></tr>
+            <tr><td>🔢 Number</td><td>Type a number — no letters allowed</td></tr>
+            <tr><td>📅 Date</td><td>Tap to open the date picker</td></tr>
+            <tr><td>▼ Dropdown</td><td>Tap to see options, select one</td></tr>
+            <tr><td>☑️ Checkbox</td><td>Tap one or more options</td></tr>
+            <tr><td>📷 Photo</td><td>Tap to open camera or gallery</td></tr>
+            <tr><td>📍 GPS</td><td>Tap to record your current location</td></tr>
+            <tr><td>✍️ Signature</td><td>Draw with your finger</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tip">
+        <span>✅</span>
+        <span>Your answers are saved automatically as you go. If you close the app mid-way, your progress is kept — just reopen the form to continue.</span>
+      </div>
+    </section>
+
+    <!-- ── SUBMITTING ── -->
+    <section class="section" id="submit">
+      <div class="section-header">
+        <div class="section-icon">📤</div>
+        <h2 class="section-title">Submitting a Form</h2>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Fill all required fields</strong>
+            <p>The Submit button stays grey until all required fields are complete.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Tap Submit</strong>
+            <p>Your submission is saved to the phone instantly — even without internet.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>The app syncs when connected</strong>
+            <p>When your phone has internet, the submission is automatically sent to your organisation. You will see a sync indicator in the dashboard.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="note">
+        <span>ℹ️</span>
+        <span>Once submitted, you cannot edit a form. If you made a mistake, let your admin know — they can delete the submission and you can resubmit.</span>
+      </div>
+    </section>
+
+    <!-- ── OFFLINE ── -->
+    <section class="section" id="offline">
+      <div class="section-header">
+        <div class="section-icon">📶</div>
+        <h2 class="section-title">Working Offline</h2>
+      </div>
+
+      <div class="card">
+        <h3>No internet? No problem.</h3>
+        <p>ReportBase is designed for field work. You can fill and submit forms without any internet connection. The app stores everything on your phone and syncs automatically when you reconnect.</p>
+      </div>
+
+      <div class="card">
+        <h3>What works offline</h3>
+        <ul style="margin:8px 0 0 18px;font-size:0.88rem;line-height:2.2;">
+          <li>Opening and filling any form</li>
+          <li>Taking photos and capturing GPS</li>
+          <li>Submitting forms (saved to phone)</li>
+          <li>Viewing your past submissions</li>
+          <li>PIN and fingerprint login</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>What requires internet</h3>
+        <ul style="margin:8px 0 0 18px;font-size:0.88rem;line-height:2.2;">
+          <li>Syncing new forms from your admin</li>
+          <li>Uploading submissions to the server</li>
+          <li>Checking for app updates</li>
+        </ul>
+      </div>
+
+      <div class="tip">
+        <span>✅</span>
+        <span>When you return from the field and connect to WiFi, all pending submissions upload automatically. You do not need to do anything manually.</span>
+      </div>
+    </section>
+
+    <!-- ── MY SUBMISSIONS ── -->
+    <section class="section" id="submissions">
+      <div class="section-header">
+        <div class="section-icon">📨</div>
+        <h2 class="section-title">My Submissions</h2>
+      </div>
+
+      <p style="margin-bottom:16px;font-size:0.9rem;">Tap <strong>My Submissions</strong> from the dashboard to see all forms you have submitted.</p>
+
+      <div class="card">
+        <h3>Submission status</h3>
+        <table class="tbl">
+          <thead>
+            <tr><th>Status</th><th>What it means</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>⏳ Pending</td><td>Saved on your phone, waiting to sync</td></tr>
+            <tr><td>✅ Synced</td><td>Successfully uploaded to your organisation</td></tr>
+            <tr><td>❌ Failed</td><td>Sync error — will retry automatically</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h3>Viewing a past submission</h3>
+        <p>Tap any submission in the list to see all your answers, photos, and the GPS location recorded at the time.</p>
+      </div>
+    </section>
+
+    <!-- ── PIN & FINGERPRINT ── -->
+    <section class="section" id="pin">
+      <div class="section-header">
+        <div class="section-icon">🔐</div>
+        <h2 class="section-title">PIN &amp; Fingerprint</h2>
+      </div>
+
+      <div class="card">
+        <h3>Changing your PIN</h3>
+        <div class="steps" style="margin-top:10px;">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><strong>Go to Settings → Security</strong></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body"><strong>Tap PIN Login → Change PIN</strong><p>Enter your current PIN, then set a new one.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Turning fingerprint on or off</h3>
+        <div class="steps" style="margin-top:10px;">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><strong>Go to Settings → Security</strong></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body"><strong>Tap the Fingerprint Login toggle</strong><p>Green = ON. Grey = OFF. Your phone must support fingerprint for this to appear.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="warn">
+        <span>⚠️</span>
+        <span>If you remove your PIN and disable fingerprint, you will need to enter your full username and password each time you open the app.</span>
+      </div>
+    </section>
+
+    <!-- ── LANGUAGE ── -->
+    <section class="section" id="language">
+      <div class="section-header">
+        <div class="section-icon">🌍</div>
+        <h2 class="section-title">Language</h2>
+      </div>
+
+      <p style="margin-bottom:16px;font-size:0.9rem;">ReportBase supports 13 languages. You can switch at any time from Settings.</p>
+
+      <div class="card">
+        <h3>Changing the app language</h3>
+        <div class="steps" style="margin-top:10px;">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><strong>Go to Settings → Language</strong></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body"><strong>Select your language from the list</strong><p>The app restarts and displays in the chosen language.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Supported languages</h3>
+        <p style="margin-bottom:8px;">English · اردو · پښتو · سنڌي · سرائیکی · بلوچی · বাংলা · Français · Nederlands · हिन्दी · العربية · Kiswahili · Português</p>
+        <div class="note" style="margin-top:10px;">
+          <span>ℹ️</span>
+          <span>For Urdu, Saraiki, and Balochi — the app uses the Nastaleeq font for correct right-to-left display.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── CHANGE PASSWORD ── -->
+    <section class="section" id="password">
+      <div class="section-header">
+        <div class="section-icon">🔒</div>
+        <h2 class="section-title">Change Password</h2>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body"><strong>Go to Settings → Change Password</strong></div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body"><strong>Enter your current password</strong></div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body"><strong>Enter your new password twice</strong><p>Both entries must match.</p></div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body"><strong>Tap Save</strong><p>Your new password is active immediately.</p></div>
+        </div>
+      </div>
+
+      <div class="warn">
+        <span>⚠️</span>
+        <span>If you forget your current password, you cannot change it yourself. Ask your admin to reset it from the Client Panel.</span>
+      </div>
+    </section>
+
+    <!-- ── FAQ ── -->
+    <section class="section" id="faq">
+      <div class="section-header">
+        <div class="section-icon">💡</div>
+        <h2 class="section-title">FAQ</h2>
+      </div>
+
+      <div class="card">
+        <h3>I scanned the QR but nothing happened</h3>
+        <p>Make sure you are scanning the correct QR code — the one your admin gave you, not a random one. The QR must be for your organisation. Try moving closer or improving the lighting.</p>
+      </div>
+
+      <div class="card">
+        <h3>My forms disappeared</h3>
+        <p>This usually means your department assignment changed in the admin panel. Connect to the internet and pull down to refresh. If forms are still missing, contact your admin.</p>
+      </div>
+
+      <div class="card">
+        <h3>The app shows a TRIAL banner</h3>
+        <p>This is your organisation's licence status — not something you can change. Let your admin know so they can sort it from their end.</p>
+      </div>
+
+      <div class="card">
+        <h3>My submission is stuck on Pending</h3>
+        <p>The app needs internet to upload. Connect to WiFi or mobile data. The sync happens automatically — you don't need to tap anything. If it stays stuck after reconnecting, try closing and reopening the app.</p>
+      </div>
+
+      <div class="card">
+        <h3>I got a new phone — do I start over?</h3>
+        <p>Yes — install the app, then ask your admin to reset your device. They do this from the Client Panel. Once reset, scan the organisation QR code again and log in. Your past submissions are safe on the server.</p>
+      </div>
+
+      <div class="card">
+        <h3>Who do I contact for help?</h3>
+        <p>First contact your organisation admin — they manage your account. For technical issues with ReportBase itself, your admin can reach out to <a href="mailto:hello@reportbase.app" style="color:var(--navy);font-weight:500;">hello@reportbase.app</a>.</p>
+      </div>
+    </section>
+
+    <div style="height:1px;background:var(--border);margin-bottom:36px;"></div>
+    <p style="font-size:0.84rem;color:var(--muted);text-align:center;padding-bottom:48px;">
+      Need more help? Contact your organisation admin or email <a href="mailto:hello@reportbase.app" style="color:var(--navy);font-weight:600;">hello@reportbase.app</a>
+    </p>
+
+  </main>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div style="max-width:1100px;margin:0 auto;">
+    <div class="footer-bottom">
+      <span>© 2026 ReportBase · <a href="https://reportbase.app">reportbase.app</a></span>
+      <span>
+        <a href="how-it-works.html">Product Walkthrough</a> ·
+        <a href="dashboard-guide.html">Dashboard Guide</a> ·
+        <a href="staff-guide.html">Staff Guide</a>
+      </span>
+    </div>
+  </div>
+</footer>
+
+<script>
+function toggleGuideMenu(){
+  document.getElementById('guideDropdown').classList.toggle('open');
+}
+document.addEventListener('click', function(e){
+  const dd = document.getElementById('guideDropdown');
+  if(dd && !dd.contains(e.target)) dd.classList.remove('open');
+});
+
+// Sidebar scroll highlight
+const sections = document.querySelectorAll('.section');
+const links = document.querySelectorAll('.sidebar a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => { if(window.scrollY >= s.offsetTop - 100) current = s.id; });
+  links.forEach(l => {
+    l.style.background = '';
+    l.style.borderLeftColor = 'transparent';
+    l.style.color = '';
+    if(l.getAttribute('href') === '#' + current){
+      l.style.background = '#f1f5ff';
+      l.style.borderLeftColor = '#1e3a8a';
+      l.style.color = '#1e3a8a';
+    }
+  });
+});
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const t = document.querySelector(a.getAttribute('href'));
+    if(t){ e.preventDefault(); t.scrollIntoView({behavior:'smooth'}); }
+  });
+});
+</script>
+</body>
+</html>

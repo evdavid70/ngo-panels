@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReportBase — Dashboard Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #1e3a8a;
+    --navy-dark: #0f172a;
+    --navy-mid: #1e40af;
+    --gold: #c8a96e;
+    --gold-light: #e8d5a3;
+    --bg: #f7f8fc;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --text: #1e293b;
+    --muted: #64748b;
+    --success: #16a34a;
+    --warn: #b45309;
+    --radius: 10px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy) 60%, var(--navy-mid) 100%);
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+  }
+  .topbar img { height: 38px; }
+  .topbar-title {
+    font-family: 'DM Serif Display', serif;
+    color: #fff;
+    font-size: 1.15rem;
+    letter-spacing: 0.02em;
+  }
+  .topbar-badge {
+    margin-left: auto;
+    background: rgba(200,169,110,0.2);
+    border: 1px solid var(--gold);
+    color: var(--gold-light);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: flex;
+    min-height: calc(100vh - 74px);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 28px 0;
+    position: sticky;
+    top: 74px;
+    height: calc(100vh - 74px);
+    overflow-y: auto;
+  }
+  .sidebar-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    padding: 0 20px 8px;
+    margin-top: 16px;
+  }
+  .sidebar-label:first-child { margin-top: 0; }
+  .sidebar a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 20px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 500;
+    border-left: 3px solid transparent;
+    transition: all 0.15s;
+  }
+  .sidebar a:hover {
+    background: #f1f5ff;
+    border-left-color: var(--navy);
+    color: var(--navy);
+  }
+  .sidebar a .icon { font-size: 1rem; width: 20px; text-align: center; }
+
+  /* ── CONTENT ── */
+  .content {
+    flex: 1;
+    padding: 48px 52px;
+    max-width: 860px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 100%);
+    border-radius: var(--radius);
+    padding: 36px 40px;
+    color: #fff;
+    margin-bottom: 44px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    right: -30px; top: -30px;
+    width: 180px; height: 180px;
+    background: rgba(200,169,110,0.12);
+    border-radius: 50%;
+  }
+  .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.9rem;
+    margin-bottom: 10px;
+    line-height: 1.2;
+  }
+  .hero p { opacity: 0.82; font-size: 0.95rem; max-width: 540px; }
+
+  /* ── SECTIONS ── */
+  .section {
+    margin-bottom: 56px;
+    scroll-margin-top: 100px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--border);
+  }
+  .section-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--navy), var(--navy-mid));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.35rem;
+    color: var(--navy);
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    margin-bottom: 16px;
+  }
+  .card h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 8px;
+  }
+  .card p { font-size: 0.9rem; color: var(--text); }
+
+  /* ── STEPS ── */
+  .steps { display: flex; flex-direction: column; gap: 12px; }
+  .step {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+  }
+  .step-num {
+    width: 28px; height: 28px;
+    background: var(--navy);
+    color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 500;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .step-body { flex: 1; }
+  .step-body strong { font-size: 0.93rem; color: var(--navy); display: block; margin-bottom: 4px; }
+  .step-body p { font-size: 0.88rem; color: var(--muted); }
+
+  /* ── TIP / WARN BOX ── */
+  .tip, .warn, .note {
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    font-size: 0.88rem;
+    margin-top: 14px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .tip { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+  .warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+  .note { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+  .tip-icon, .warn-icon, .note-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── TABLE ── */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin-top: 12px; }
+  .tbl th {
+    background: var(--navy);
+    color: #fff;
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 500;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+  }
+  .tbl th:first-child { border-radius: 8px 0 0 0; }
+  .tbl th:last-child { border-radius: 0 8px 0 0; }
+  .tbl td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .tbl tr:last-child td { border-bottom: none; }
+  .tbl tr:nth-child(even) td { background: #f8faff; }
+
+  /* ── TAG ── */
+  .tag {
+    display: inline-block;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  .tag-navy { background: #dbeafe; color: var(--navy); }
+  .tag-gold { background: #fef3c7; color: #92400e; }
+  .tag-green { background: #dcfce7; color: #166534; }
+  .tag-red { background: #fee2e2; color: #991b1b; }
+
+  /* ── TAB DIAGRAM ── */
+  .tab-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .tab-chip {
+    background: var(--navy);
+    color: #fff;
+    font-size: 0.8rem;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+  .tab-chip.inactive {
+    background: var(--border);
+    color: var(--muted);
+  }
+
+  /* ── PLAN COMPARE ── */
+  .plan-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+  .plan-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .plan-card.featured { border-color: var(--gold); background: #fffdf5; }
+  .plan-name { font-family: 'DM Serif Display', serif; font-size: 1rem; color: var(--navy); }
+  .plan-price { font-family: 'DM Mono', monospace; font-size: 0.82rem; color: var(--muted); margin: 4px 0; }
+  .plan-feat { font-size: 0.78rem; color: var(--text); }
+
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: var(--border); margin: 40px 0; }
+
+  /* ── FOOTER ── */
+  .footer {
+    background: var(--navy-dark);
+    color: rgba(255,255,255,0.5);
+    text-align: center;
+    padding: 24px;
+    font-size: 0.82rem;
+  }
+  .footer a { color: var(--gold); text-decoration: none; }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .content { padding: 28px 20px; }
+    .topbar { padding: 14px 20px; }
+    .hero { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <img src="https://raw.githubusercontent.com/evdavid70/ngo-panels/main/reportbase_logo.png" alt="ReportBase">
+  <span class="topbar-title">Dashboard Guide</span>
+  <span class="topbar-badge">FOR ORG ADMINS</span>
+</div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-label">Getting Started</div>
+    <a href="#login"><span class="icon">🔐</span> Logging In</a>
+    <a href="#overview"><span class="icon">🏠</span> Dashboard Overview</a>
+
+    <div class="sidebar-label">Manage</div>
+    <a href="#users"><span class="icon">👥</span> Users & Devices</a>
+    <a href="#departments"><span class="icon">🏢</span> Departments</a>
+    <a href="#forms"><span class="icon">📋</span> Forms</a>
+    <a href="#submissions"><span class="icon">📨</span> Submissions</a>
+
+    <div class="sidebar-label">Settings</div>
+    <a href="#ai"><span class="icon">🤖</span> AI Review</a>
+    <a href="#portal"><span class="icon">📊</span> Report Portal</a>
+    <a href="#account"><span class="icon">⚙️</span> Account</a>
+
+    <div class="sidebar-label">Help</div>
+    <a href="#tips"><span class="icon">💡</span> Tips & FAQ</a>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="content">
+
+    <!-- HERO -->
+    <div class="hero">
+      <h1>Welcome to Your Dashboard</h1>
+      <p>This guide walks you through every part of the ReportBase Client Panel — from adding staff to reviewing field submissions. No technical knowledge required.</p>
+    </div>
+
+    <!-- ── LOGIN ── -->
+    <section class="section" id="login">
+      <div class="section-header">
+        <div class="section-icon">🔐</div>
+        <h2 class="section-title">Logging In</h2>
+      </div>
+
+      <p style="margin-bottom:16px;">Open your browser and go to:</p>
+      <div class="card" style="background:#f8faff; font-family:'DM Mono',monospace; font-size:0.9rem; color:var(--navy); letter-spacing:0.02em;">
+        https://reportbase.app/dashboard.html
+      </div>
+
+      <div class="steps" style="margin-top:20px;">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Enter your Organisation Name</strong>
+            <p>This is the short name given to you by ReportBase (e.g. <span style="font-family:'DM Mono',monospace">myschool</span>). It is case-sensitive.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Enter your Password</strong>
+            <p>Your admin password — different from staff app passwords.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Click Sign In</strong>
+            <p>You will land on the Overview tab showing your licence details and stats.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="warn">
+        <span class="warn-icon">⚠️</span>
+        <span>Never share your dashboard password. It gives full access to all your staff data and settings. If you forget it, contact ReportBase support.</span>
+      </div>
+    </section>
+
+    <!-- ── OVERVIEW ── -->
+    <section class="section" id="overview">
+      <div class="section-header">
+        <div class="section-icon">🏠</div>
+        <h2 class="section-title">Dashboard Overview</h2>
+      </div>
+
+      <p style="margin-bottom:16px;">After login you see the <strong>Overview</strong> tab. The dashboard is organised into tabs across the top:</p>
+
+      <div class="tab-row">
+        <span class="tab-chip">Overview</span>
+        <span class="tab-chip inactive">Users</span>
+        <span class="tab-chip inactive">Departments</span>
+        <span class="tab-chip inactive">Forms</span>
+        <span class="tab-chip inactive">Submissions</span>
+        <span class="tab-chip inactive">AI Settings</span>
+        <span class="tab-chip inactive">Account</span>
+      </div>
+
+      <div class="card">
+        <h3>What you see on Overview</h3>
+        <table class="tbl">
+          <thead>
+            <tr><th>Item</th><th>What it means</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Licence Status</td><td>ACTIVE, TRIAL, or EXPIRED. Trial shows days remaining.</td></tr>
+            <tr><td>Plan</td><td>Your current plan (Starter / Basic / Growth / Pro).</td></tr>
+            <tr><td>Users</td><td>How many staff accounts you have vs your plan limit.</td></tr>
+            <tr><td>Forms</td><td>Total form templates published to your staff.</td></tr>
+            <tr><td>Submissions (30d)</td><td>Forms submitted by field staff in the last 30 days.</td></tr>
+            <tr><td>Organisation QR</td><td>The QR code your staff scan to set up the app on a new phone.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tip">
+        <span class="tip-icon">✅</span>
+        <span>Bookmark <strong>reportbase.app/dashboard.html</strong> in your browser so you can open it quickly each time.</span>
+      </div>
+    </section>
+
+    <!-- ── USERS ── -->
+    <section class="section" id="users">
+      <div class="section-header">
+        <div class="section-icon">👥</div>
+        <h2 class="section-title">Users &amp; Devices</h2>
+      </div>
+
+      <p style="margin-bottom:16px;">This tab manages all your field staff accounts and the phones they use.</p>
+
+      <div class="card">
+        <h3>Adding a new staff member</h3>
+        <div class="steps" style="margin-top:10px;">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><strong>Go to Users tab → click Add User</strong><p>A form will appear.</p></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body"><strong>Fill in: Username, Full Name, Password, Department, Role</strong><p>Username must be unique. Role is usually <em>Staff</em>.</p></div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body"><strong>Click Save</strong><p>Staff member can now log in on the Android app using those credentials.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Resetting a device</h3>
+        <p>If a staff member gets a new phone, or the app is stuck, you need to reset their device binding so they can scan the QR again.</p>
+        <div class="steps" style="margin-top:10px;">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><strong>Find the user in the Users list</strong><p>Click the three-dot menu or the Reset Device button beside their name.</p></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body"><strong>Confirm the reset</strong><p>This clears their device binding. They will need to scan the organisation QR code again on the new phone.</p></div>
+          </div>
+        </div>
+        <div class="note" style="margin-top:12px;">
+          <span class="note-icon">ℹ️</span>
+          <span>Give the staff member your Organisation QR code (visible on the Overview tab). They scan it with the ReportBase app to re-link their account.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Roles explained</h3>
+        <table class="tbl">
+          <thead>
+            <tr><th>Role</th><th>What they can do in the app</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="tag tag-navy">Staff</span></td><td>Fill and submit forms. View their own submissions.</td></tr>
+            <tr><td><span class="tag tag-gold">Supervisor</span></td><td>Everything Staff can do, plus view all submissions in their department.</td></tr>
+            <tr><td><span class="tag tag-green">Admin</span></td><td>Full access inside the app. Can also see the admin dashboard section.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="warn">
+        <span class="warn-icon">⚠️</span>
+        <span>Deleting a user is permanent. Their submitted data stays in the system but they can no longer log in. There is no undo.</span>
+      </div>
+    </section>
+
+    <!-- ── DEPARTMENTS ── -->
+    <section class="section" id="departments">
+      <div class="section-header">
+        <div class="section-icon">🏢</div>
+        <h2 class="section-title">Departments</h2>
+      </div>
+
+      <p style="margin-bottom:16px;">Departments group your staff so they only see forms relevant to them. Examples: <em>Field Team</em>, <em>Health Workers</em>, <em>Teachers</em>.</p>
+
+      <div class="card">
+        <h3>Creating a department</h3>
+        <div class="steps" style="margin-top:10px;">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><strong>Go to Departments tab → Add Department</strong></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body"><strong>Enter a department name</strong><p>Keep it short and clear, e.g. "Field Team".</p></div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body"><strong>Click Save</strong><p>It appears in the list immediately. You can now assign users and forms to it.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip">
+        <span class="tip-icon">✅</span>
+        <span>When you assign a form to a department, only staff in that department will see that form in their app. This keeps things tidy for large organisations.</span>
+      </div>
+    </section>
+
+    <!-- ── FORMS ── -->
+    <section class="section" id="forms">
+      <div class="section-header">
+        <div class="section-icon">📋</div>
+        <h2 class="section-title">Forms</h2>
+      </div>
+
+      <p style="margin-bottom:16px;">Forms are what your field staff fill out in the app. You build and manage them here.</p>
+
+      <div class="card">
+        <h3>Creating a form from scratch</h3>
+        <div class="steps" style="margin-top:10px;">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><strong>Go to Forms tab → New Form</strong></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body"><strong>Enter a form title and description</strong><p>E.g. "Daily Field Visit Report".</p></div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body"><strong>Add fields using the form builder</strong><p>Field types: Text, Number, Date, Dropdown, Checkbox, Photo, GPS Location, Signature.</p></div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body"><strong>Assign to a department</strong><p>Choose which department sees this form.</p></div>
+          </div>
+          <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-body"><strong>Click Publish</strong><p>Staff in that department will see the form in their app within minutes.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Importing a form from a spreadsheet</h3>
+        <p>Have an existing data collection sheet? You can import it.</p>
+        <div class="steps" style="margin-top:10px;">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><strong>Click Import Form (or use AI Import)</strong><p>AI Import lets you paste a table or describe fields in plain text.</p></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body"><strong>Review the generated fields</strong><p>Check that each field looks right before saving.</p></div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body"><strong>Publish as normal</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Field types at a glance</h3>
+        <table class="tbl">
+          <thead>
+            <tr><th>Field Type</th><th>Use it for</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Text</td><td>Names, notes, free-text answers</td></tr>
+            <tr><td>Number</td><td>Counts, quantities, scores</td></tr>
+            <tr><td>Date</td><td>Visit dates, event dates</td></tr>
+            <tr><td>Dropdown</td><td>Fixed choices (e.g. Yes / No / Partial)</td></tr>
+            <tr><td>Checkbox</td><td>Multiple selections from a list</td></tr>
+            <tr><td>Photo</td><td>Camera shot or gallery image as evidence</td></tr>
+            <tr><td>GPS Location</td><td>Automatic coordinates of where the form is submitted</td></tr>
+            <tr><td>Signature</td><td>On-screen signature for approvals</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="tip">
+        <span class="tip-icon">✅</span>
+        <span>You can edit a form after publishing — the updated version will sync to staff phones automatically on their next connection.</span>
+      </div>
+    </section>
+
+    <!-- ── SUBMISSIONS ── -->
+    <section class="section" id="submissions">
+      <div class="section-header">
+        <div class="section-icon">📨</div>
+        <h2 class="section-title">Submissions</h2>
+      </div>
+
+      <p style="margin-bottom:16px;">Every form your staff submit in the field appears here for you to review.</p>
+
+      <div class="card">
+        <h3>Browsing submissions</h3>
+        <p>On the Submissions tab you can:</p>
+        <ul style="margin:10px 0 0 20px; font-size:0.9rem; line-height:2;">
+          <li>Filter by <strong>Form</strong>, <strong>Staff Member</strong>, <strong>Date range</strong>, or <strong>Department</strong></li>
+          <li>Click any row to see the full submission with all answers and photos</li>
+          <li>See the GPS location on a map (if the form includes location)</li>
+          <li>View the AI quality review result (if AI Review is enabled)</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Exporting data</h3>
+        <p style="margin-bottom:10px;">Download your submissions as a spreadsheet for reporting or analysis.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><strong>Apply any filters you want</strong><p>E.g. filter by date range or specific form.</p></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body"><strong>Click Export → Excel or CSV</strong><p>The file downloads to your computer.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Deleting a submission</h3>
+        <p>Open any submission and click <strong>Delete</strong>. You will be asked to confirm. Deletion is permanent.</p>
+        <div class="warn" style="margin-top:10px;">
+          <span class="warn-icon">⚠️</span>
+          <span>Only delete submissions that were submitted by mistake. Real field data should be kept for your records.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── AI ── -->
+    <section class="section" id="ai">
+      <div class="section-header">
+        <div class="section-icon">🤖</div>
+        <h2 class="section-title">AI Review</h2>
+      </div>
+
+      <p style="margin-bottom:16px;">ReportBase can automatically review every submission for quality — checking if answers are complete, relevant, and meaningful. This is done by AI in the background.</p>
+
+      <div class="card">
+        <h3>What AI Review does</h3>
+        <ul style="margin:8px 0 0 20px; font-size:0.9rem; line-height:2;">
+          <li>Checks that answers actually answer the question (not just "yes" for everything)</li>
+          <li>Flags unusually short or unclear answers</li>
+          <li>Gives a quality score and brief comment</li>
+          <li>Does <strong>not</strong> correct spellings or edit answers</li>
+          <li>Never delays or blocks the submission — always runs after</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3>Turning AI Review on or off</h3>
+        <div class="steps" style="margin-top:10px;">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><strong>Go to AI Settings tab</strong></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body"><strong>Toggle AI Review ON or OFF</strong><p>Changes apply immediately — no need to republish forms.</p></div>
+          </div>
+        </div>
+        <div class="note" style="margin-top:12px;">
+          <span class="note-icon">ℹ️</span>
+          <span>AI Review is available on the <strong>Pro</strong> plan only. If you are on a lower plan, this tab will indicate that an upgrade is needed.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PORTAL ── -->
+    <section class="section" id="portal">
+      <div class="section-header">
+        <div class="section-icon">📊</div>
+        <h2 class="section-title">Report Portal</h2>
+      </div>
+
+      <p style="margin-bottom:16px;">The Report Portal is a separate, read-only website you can share with donors, partners, or senior management. It shows charts, maps, and submission summaries — without giving anyone access to your admin dashboard.</p>
+
+      <div class="card">
+        <h3>Sharing the portal</h3>
+        <p>The Report Portal link is:</p>
+        <div style="font-family:'DM Mono',monospace; font-size:0.88rem; color:var(--navy); background:#f8faff; border:1px solid var(--border); border-radius:8px; padding:12px 16px; margin:10px 0;">
+          https://reportbase.app/report-portal.html
+        </div>
+        <p style="font-size:0.9rem;">When someone opens it, they will be asked for your <strong>Organisation Name</strong> and <strong>Password</strong>. You can share these with trusted viewers — they cannot edit anything.</p>
+      </div>
+
+      <div class="card">
+        <h3>What the portal shows</h3>
+        <table class="tbl">
+          <thead>
+            <tr><th>Tab</th><th>Content</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Overview</td><td>Summary charts: submissions over time, by form, by department</td></tr>
+            <tr><td>Map</td><td>GPS pins for all submissions on a live map</td></tr>
+            <tr><td>Submissions</td><td>Browsable list of all submissions with answers</td></tr>
+            <tr><td>Guide</td><td>How-to information for portal viewers</td></tr>
+          </tbody>
+        </table>
+        <div class="note" style="margin-top:12px;">
+          <span class="note-icon">ℹ️</span>
+          <span>The Report Portal is available on <strong>Growth</strong> and <strong>Pro</strong> plans. Starter and Basic plan holders do not have access to this feature.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── ACCOUNT ── -->
+    <section class="section" id="account">
+      <div class="section-header">
+        <div class="section-icon">⚙️</div>
+        <h2 class="section-title">Account Settings</h2>
+      </div>
+
+      <div class="card">
+        <h3>Changing your admin password</h3>
+        <div class="steps" style="margin-top:10px;">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><strong>Go to Account tab</strong></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body"><strong>Enter current password, then new password twice</strong></div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body"><strong>Click Save</strong><p>You will need to use the new password on your next login.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Uploading your organisation logo</h3>
+        <p style="margin-bottom:10px;">Your logo appears on staff phones and in the Report Portal.</p>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body"><strong>Go to Account tab → Logo section</strong></div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body"><strong>Paste a direct image URL</strong><p>Must be a direct link to an image file (ending in .png or .jpg). Google Drive sharing links do not work — use Imgur or a similar image host.</p></div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body"><strong>Click Save</strong><p>Staff phones will update the logo on their next sync.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Your Organisation QR Code</h3>
+        <p>The QR code on the Overview tab is what new staff scan to link their phone to your organisation. You can also access it from the Account tab.</p>
+        <ul style="margin:10px 0 0 20px; font-size:0.9rem; line-height:2;">
+          <li>Print it and stick it somewhere accessible to staff</li>
+          <li>Or share it digitally via WhatsApp / email</li>
+          <li>Staff only need to scan it once per phone</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ── TIPS ── -->
+    <section class="section" id="tips">
+      <div class="section-header">
+        <div class="section-icon">💡</div>
+        <h2 class="section-title">Tips &amp; FAQ</h2>
+      </div>
+
+      <div class="card">
+        <h3>Staff can't see the new form I published</h3>
+        <p>Forms sync when the app has internet. Ask the staff member to open the app on a working connection and wait 30 seconds for the sync. If still missing, check the form is assigned to their department.</p>
+      </div>
+
+      <div class="card">
+        <h3>Staff phone shows TRIAL banner even after reset</h3>
+        <p>Make sure you used the <strong>Reset Device</strong> button in the dashboard (not just told the staff to reinstall). After the reset, the staff member must scan the QR code again on the new phone.</p>
+      </div>
+
+      <div class="card">
+        <h3>I forgot my admin password</h3>
+        <p>Contact ReportBase support at <a href="mailto:ernestvdavid@gmail.com" style="color:var(--navy);">ernestvdavid@gmail.com</a> with your organisation name. Do not share your password with anyone else.</p>
+      </div>
+
+      <div class="card">
+        <h3>How many staff can I add?</h3>
+        <div class="plan-grid">
+          <div class="plan-card">
+            <div class="plan-name">Starter</div>
+            <div class="plan-price">$19/mo</div>
+            <div class="plan-feat">10 users</div>
+          </div>
+          <div class="plan-card">
+            <div class="plan-name">Basic</div>
+            <div class="plan-price">$35/mo</div>
+            <div class="plan-feat">20 users</div>
+          </div>
+          <div class="plan-card featured">
+            <div class="plan-name">Growth</div>
+            <div class="plan-price">$49/mo</div>
+            <div class="plan-feat">30 users + Portal</div>
+          </div>
+          <div class="plan-card featured">
+            <div class="plan-name">Pro</div>
+            <div class="plan-price">$99/mo</div>
+            <div class="plan-feat">100 users + AI</div>
+          </div>
+        </div>
+        <div class="note" style="margin-top:14px;">
+          <span class="note-icon">ℹ️</span>
+          <span>Need more users? Contact ReportBase for an Enterprise plan with no user limit.</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Can I use the dashboard on my phone?</h3>
+        <p>Yes — the dashboard works in any mobile browser. The sidebar collapses automatically on smaller screens.</p>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+    <p style="font-size:0.85rem; color:var(--muted); text-align:center; padding-bottom:40px;">
+      Need help? Email <a href="mailto:ernestvdavid@gmail.com" style="color:var(--navy); font-weight:600;">ernestvdavid@gmail.com</a> · 
+      <a href="https://reportbase.app" style="color:var(--navy);">reportbase.app</a>
+    </p>
+
+  </main>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  © 2026 ReportBase · Field Reporting System · <a href="https://reportbase.app">reportbase.app</a>
+</div>
+
+<script>
+  // Smooth scroll + active sidebar highlight
+  document.querySelectorAll('.sidebar a').forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(link.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  const sections = document.querySelectorAll('.section');
+  const links = document.querySelectorAll('.sidebar a');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+      if (window.scrollY >= s.offsetTop - 110) current = s.id;
+    });
+    links.forEach(l => {
+      l.style.background = '';
+      l.style.borderLeftColor = 'transparent';
+      l.style.color = '';
+      if (l.getAttribute('href') === '#' + current) {
+        l.style.background = '#f1f5ff';
+        l.style.borderLeftColor = '#1e3a8a';
+        l.style.color = '#1e3a8a';
+      }
+    });
+  });
+</script>
+
+</body>
+</html>
