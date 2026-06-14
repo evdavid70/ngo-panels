@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReportBase — Field Reporting System for Organisations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#f7f8fc;
+  --surface:#ffffff;
+  --border:rgba(0,0,0,0.07);
+  --border-md:rgba(0,0,0,0.12);
+  --text:#1a1f2e;
+  --muted:#7a8199;
+  --navy:#1e3a8a;
+  --navy-bright:#3b5fc0;
+  --navy-dim:#eff2fd;
+  --gold:#c8a96e;
+  --gold-dim:#fef3e2;
+  --green:#1a7a52;
+  --green-dim:#e6f4ee;
+  --dark:#0f172a;
+  --serif:'DM Serif Display',Georgia,serif;
+  --sans:'DM Sans',system-ui,sans-serif;
+  --mono:'DM Mono',monospace;
+}
+
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:rgba(15,23,42,0.96);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid rgba(200,169,110,0.15);
+  padding:0 5%;
+  display:flex;align-items:center;justify-content:space-between;
+  height:64px;
+}
+.nav-brand{
+  font-family:var(--serif);font-size:22px;color:#fff;
+  display:flex;align-items:center;gap:10px;text-decoration:none;
+}
+
+.nav-links{display:flex;align-items:center;gap:8px}
+.nav-links a{
+  color:rgba(255,255,255,0.7);text-decoration:none;
+  font-size:14px;font-weight:500;padding:8px 14px;border-radius:8px;
+  transition:all .2s;
+}
+.nav-links a:hover{color:#fff;background:rgba(255,255,255,0.08)}
+.btn-nav-primary{
+  background:var(--gold)!important;color:var(--dark)!important;
+  font-weight:600!important;padding:8px 18px!important;
+}
+.btn-nav-primary:hover{background:#d4b97e!important;transform:translateY(-1px)}
+
+/* ── NAV DROPDOWN ── */
+.nav-dropdown{position:relative;}
+.nav-dropdown-toggle{
+  color:rgba(255,255,255,0.7);text-decoration:none;
+  font-size:14px;font-weight:500;padding:8px 14px;border-radius:8px;
+  transition:all .2s;cursor:pointer;
+  display:flex;align-items:center;gap:5px;
+  background:none;border:none;font-family:var(--sans);
+}
+.nav-dropdown-toggle:hover{color:#fff;background:rgba(255,255,255,0.08)}
+.nav-dropdown-toggle .chevron{font-size:10px;opacity:0.6;transition:transform .2s;}
+.nav-dropdown.open .chevron{transform:rotate(180deg);}
+.nav-dropdown-menu{
+  position:absolute;top:calc(100% + 8px);right:0;
+  background:rgba(15,23,42,0.98);
+  border:1px solid rgba(200,169,110,0.2);
+  border-radius:12px;
+  padding:8px;
+  min-width:210px;
+  opacity:0;pointer-events:none;
+  transform:translateY(-6px);
+  transition:all .2s;
+  box-shadow:0 12px 40px rgba(0,0,0,0.4);
+  z-index:200;
+}
+.nav-dropdown.open .nav-dropdown-menu{opacity:1;pointer-events:all;transform:translateY(0);}
+.nav-dropdown-menu a{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;border-radius:8px;
+  color:rgba(255,255,255,0.7);text-decoration:none;
+  font-size:13px;font-weight:500;
+  transition:all .15s;
+}
+.nav-dropdown-menu a:hover{background:rgba(255,255,255,0.08);color:#fff;}
+.nav-dropdown-menu a .dm-icon{font-size:15px;width:20px;text-align:center;}
+.nav-dropdown-divider{height:1px;background:rgba(255,255,255,0.07);margin:6px 0;}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;
+  background:linear-gradient(160deg,var(--dark) 0%,#1e3a8a 55%,#1e40af 100%);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;padding:120px 5% 80px;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(200,169,110,0.08) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(200,169,110,0.12);border:1px solid rgba(200,169,110,0.3);
+  color:var(--gold);font-size:13px;font-weight:500;letter-spacing:.5px;
+  padding:6px 16px;border-radius:100px;margin-bottom:32px;
+  font-family:var(--mono);
+}
+.hero-badge::before{content:'●';font-size:8px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+.hero h1{
+  font-family:var(--serif);font-size:clamp(42px,7vw,80px);
+  color:#fff;line-height:1.1;margin-bottom:24px;
+  max-width:800px;
+}
+.hero h1 em{color:var(--gold);font-style:italic}
+.hero p{
+  font-size:clamp(16px,2vw,20px);color:rgba(255,255,255,0.65);
+  max-width:560px;margin-bottom:48px;font-weight:300;line-height:1.7;
+}
+.hero-btns{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:64px}
+.btn-primary{
+  background:var(--gold);color:var(--dark);
+  font-family:var(--sans);font-size:15px;font-weight:600;
+  padding:14px 28px;border-radius:10px;text-decoration:none;
+  transition:all .25s;border:none;cursor:pointer;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.btn-primary:hover{background:#d4b97e;transform:translateY(-2px);box-shadow:0 8px 24px rgba(200,169,110,0.3)}
+.btn-secondary{
+  background:rgba(255,255,255,0.08);color:#fff;
+  border:1px solid rgba(255,255,255,0.2);
+  font-family:var(--sans);font-size:15px;font-weight:500;
+  padding:14px 28px;border-radius:10px;text-decoration:none;
+  transition:all .25s;
+  display:inline-flex;align-items:center;gap:8px;
+}
+.btn-secondary:hover{background:rgba(255,255,255,0.14);transform:translateY(-2px)}
+
+.hero-stats{
+  display:flex;gap:48px;flex-wrap:wrap;justify-content:center;
+  border-top:1px solid rgba(255,255,255,0.08);padding-top:48px;
+  width:100%;max-width:640px;
+}
+.hero-stat .num{
+  font-family:var(--serif);font-size:36px;color:#fff;display:block;
+}
+.hero-stat .label{font-size:13px;color:rgba(255,255,255,0.45);font-weight:500;letter-spacing:.5px;text-transform:uppercase}
+
+/* ── SECTIONS ── */
+section{padding:96px 5%}
+.section-label{
+  font-family:var(--mono);font-size:12px;letter-spacing:2px;
+  text-transform:uppercase;color:var(--gold);margin-bottom:12px;
+}
+.section-title{
+  font-family:var(--serif);font-size:clamp(32px,4vw,48px);
+  color:var(--text);line-height:1.2;margin-bottom:16px;
+}
+.section-sub{font-size:17px;color:var(--muted);max-width:520px;line-height:1.7}
+.center{text-align:center;margin-inline:auto}
+
+/* ── HOW IT WORKS ── */
+.how{background:var(--surface)}
+.steps{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:2px;margin-top:64px;border:1px solid var(--border);border-radius:16px;overflow:hidden;
+}
+.step{
+  background:var(--surface);padding:36px 28px;position:relative;
+  transition:background .2s;
+}
+.step:hover{background:var(--navy-dim)}
+.step-num{
+  font-family:var(--mono);font-size:11px;letter-spacing:2px;
+  color:var(--gold);text-transform:uppercase;margin-bottom:16px;display:block;
+}
+.step-icon{font-size:28px;margin-bottom:16px;display:block}
+.step h3{font-family:var(--serif);font-size:20px;margin-bottom:8px;color:var(--text)}
+.step p{font-size:14px;color:var(--muted);line-height:1.6}
+
+/* ── FEATURES ── */
+.features{background:var(--bg)}
+.features-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:20px;margin-top:64px;
+}
+.feature-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:32px;
+  transition:all .25s;position:relative;overflow:hidden;
+}
+.feature-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--navy),var(--gold));
+  opacity:0;transition:opacity .25s;
+}
+.feature-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(30,58,138,0.1)}
+.feature-card:hover::before{opacity:1}
+.feature-icon{
+  width:48px;height:48px;border-radius:12px;
+  background:var(--navy-dim);display:flex;align-items:center;justify-content:center;
+  font-size:22px;margin-bottom:20px;
+}
+.feature-card h3{font-family:var(--serif);font-size:20px;margin-bottom:10px}
+.feature-card p{font-size:14px;color:var(--muted);line-height:1.7}
+.feature-tag{
+  display:inline-block;margin-top:16px;
+  font-family:var(--mono);font-size:11px;letter-spacing:1px;
+  color:var(--gold);background:var(--gold-dim);
+  padding:4px 10px;border-radius:100px;text-transform:uppercase;
+}
+
+/* ── THREE PANELS ── */
+.panels{background:var(--dark);color:#fff;overflow:hidden}
+.panels .section-title{color:#fff}
+.panels .section-sub{color:rgba(255,255,255,0.5)}
+.panels-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:24px;margin-top:64px;
+}
+.panel-card{
+  border-radius:20px;padding:36px;position:relative;overflow:hidden;
+  transition:transform .25s;
+}
+.panel-card:hover{transform:translateY(-6px)}
+.panel-card.client{background:linear-gradient(135deg,#1e3a8a,#2d4db8)}
+.panel-card.portal{background:linear-gradient(135deg,#1a5c3a,#1a7a52)}
+.panel-card::after{
+  content:'';position:absolute;bottom:-30px;right:-30px;
+  width:120px;height:120px;border-radius:50%;
+  background:rgba(255,255,255,0.05);
+}
+.panel-label{
+  font-family:var(--mono);font-size:11px;letter-spacing:2px;
+  text-transform:uppercase;color:rgba(255,255,255,0.5);margin-bottom:16px;display:block;
+}
+.panel-card h3{font-family:var(--serif);font-size:26px;color:#fff;margin-bottom:12px}
+.panel-card p{font-size:14px;color:rgba(255,255,255,0.65);line-height:1.7;margin-bottom:28px}
+.panel-card ul{list-style:none;margin-bottom:28px}
+.panel-card ul li{
+  font-size:13px;color:rgba(255,255,255,0.75);padding:6px 0;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  display:flex;align-items:center;gap:8px;
+}
+.panel-card ul li::before{content:'→';color:var(--gold);font-size:12px}
+.btn-panel{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(255,255,255,0.12);color:#fff;
+  border:1px solid rgba(255,255,255,0.2);
+  font-size:14px;font-weight:500;padding:10px 20px;border-radius:8px;
+  text-decoration:none;transition:all .2s;font-family:var(--sans);
+}
+.btn-panel:hover{background:rgba(255,255,255,0.2)}
+.btn-panel-gold{background:var(--gold)!important;color:var(--dark)!important;border-color:var(--gold)!important;font-weight:600!important}
+
+/* ── PRICING ── */
+.pricing{background:var(--bg)}
+.pricing-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+  gap:20px;margin-top:64px;align-items:start;
+}
+.price-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:20px;padding:32px;position:relative;transition:all .25s;
+}
+.price-card:hover{transform:translateY(-4px);box-shadow:0 16px 48px rgba(30,58,138,0.1)}
+.price-card.featured{
+  background:linear-gradient(160deg,var(--dark),#1e3a8a);
+  border-color:var(--gold);color:#fff;
+  transform:scale(1.04);
+  box-shadow:0 20px 60px rgba(30,58,138,0.3);
+}
+.price-card.featured:hover{transform:scale(1.04) translateY(-4px)}
+.featured-badge{
+  position:absolute;top:-14px;left:50%;transform:translateX(-50%);
+  background:var(--gold);color:var(--dark);
+  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:1px;
+  padding:4px 16px;border-radius:100px;text-transform:uppercase;white-space:nowrap;
+}
+.plan-name{font-family:var(--serif);font-size:22px;margin-bottom:6px}
+.plan-desc{font-size:13px;color:var(--muted);margin-bottom:24px}
+.price-card.featured .plan-desc{color:rgba(255,255,255,0.55)}
+.plan-price{
+  font-family:var(--serif);font-size:48px;line-height:1;margin-bottom:4px;
+}
+.plan-price span{font-size:18px;font-family:var(--sans);font-weight:400}
+.plan-period{font-size:13px;color:var(--muted);margin-bottom:28px}
+.price-card.featured .plan-period{color:rgba(255,255,255,0.45)}
+.plan-divider{height:1px;background:var(--border);margin-bottom:24px}
+.price-card.featured .plan-divider{background:rgba(255,255,255,0.1)}
+.plan-features{list-style:none;margin-bottom:32px}
+.plan-features li{
+  font-size:14px;color:var(--text);padding:8px 0;
+  display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid var(--border);
+}
+.price-card.featured .plan-features li{color:rgba(255,255,255,0.8);border-color:rgba(255,255,255,0.08)}
+.plan-features li:last-child{border-bottom:none}
+.plan-features .check{color:var(--green);font-size:16px}
+.plan-features .cross{color:#b91c1c;font-size:16px}
+.price-card.featured .plan-features .check{color:#6ee7b7}
+.plan-tag{
+  font-family:var(--mono);font-size:10px;letter-spacing:1px;
+  background:var(--gold-dim);color:var(--gold);
+  padding:2px 8px;border-radius:100px;text-transform:uppercase;margin-left:auto;
+}
+.btn-plan{
+  display:block;text-align:center;text-decoration:none;
+  font-size:15px;font-weight:600;padding:12px;border-radius:10px;
+  transition:all .2s;font-family:var(--sans);
+}
+.btn-plan-outline{
+  border:1.5px solid var(--navy);color:var(--navy);
+}
+.btn-plan-outline:hover{background:var(--navy);color:#fff}
+.btn-plan-gold{background:var(--gold);color:var(--dark)}
+.btn-plan-gold:hover{background:#d4b97e;transform:translateY(-1px)}
+.btn-plan-dark{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2)}
+.btn-plan-dark:hover{background:rgba(255,255,255,0.2)}
+
+/* ── CONTACT / LOGIN ── */
+.access{background:var(--surface);border-top:1px solid var(--border)}
+.access-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:48px;
+}
+@media(max-width:640px){.access-grid{grid-template-columns:1fr}}
+.access-card{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:16px;padding:36px;text-align:center;
+}
+.access-card h3{font-family:var(--serif);font-size:24px;margin-bottom:10px}
+.access-card p{font-size:14px;color:var(--muted);margin-bottom:28px;line-height:1.7}
+.access-icon{font-size:40px;margin-bottom:20px;display:block}
+
+/* ── FOOTER ── */
+footer{
+  background:var(--dark);color:rgba(255,255,255,0.5);
+  padding:48px 5% 32px;
+}
+.footer-top{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  flex-wrap:wrap;gap:32px;padding-bottom:40px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+}
+.footer-brand{font-family:var(--serif);font-size:20px;color:#fff;margin-bottom:8px}
+.footer-tagline{font-size:13px;color:rgba(255,255,255,0.4);max-width:240px;line-height:1.6}
+.footer-links h4{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:16px;font-family:var(--mono)}
+.footer-links ul{list-style:none}
+.footer-links ul li{margin-bottom:10px}
+.footer-links ul li a{color:rgba(255,255,255,0.5);text-decoration:none;font-size:14px;transition:color .2s}
+.footer-links ul li a:hover{color:#fff}
+.footer-bottom{
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:12px;padding-top:28px;
+  font-size:12px;color:rgba(255,255,255,0.25);
+}
+.footer-bottom a{color:rgba(255,255,255,0.35);text-decoration:none}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.hero h1,.hero p,.hero-btns,.hero-stats{animation:fadeUp .7s ease both}
+.hero p{animation-delay:.1s}
+.hero-btns{animation-delay:.2s}
+.hero-stats{animation-delay:.35s}
+
+@media(max-width:768px){
+  nav{padding:0 4%}
+  .nav-links a:not(.btn-nav-primary){display:none}
+  section{padding:64px 4%}
+  .hero{padding:100px 4% 64px}
+  .hero-stats{gap:28px}
+  .panels-grid{grid-template-columns:1fr}
+  .pricing-grid{grid-template-columns:1fr}
+  .price-card.featured{transform:none}
+  .price-card.featured:hover{transform:translateY(-4px)}
+}
+
+/* ── LOGIN MODAL ── */
+.modal-overlay{
+  position:fixed;inset:0;z-index:999;
+  background:rgba(10,16,35,0.75);backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .3s;
+}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal-box{
+  background:#fff;border-radius:20px;padding:40px 36px;
+  width:100%;max-width:420px;
+  transform:translateY(20px);transition:transform .3s;
+  box-shadow:0 24px 80px rgba(0,0,0,0.3);
+  position:relative;
+}
+.modal-overlay.open .modal-box{transform:translateY(0);}
+.modal-close{
+  position:absolute;top:16px;right:16px;
+  background:none;border:none;cursor:pointer;
+  font-size:20px;color:var(--muted);line-height:1;padding:4px 8px;
+  border-radius:6px;transition:background .15s;
+}
+.modal-close:hover{background:var(--bg);}
+.modal-logo{text-align:center;margin-bottom:24px;}
+.modal-logo img{height:52px;width:auto;}
+.modal-title{
+  font-family:var(--serif);font-size:22px;
+  color:var(--text);margin-bottom:6px;text-align:center;
+}
+.modal-sub{font-size:13px;color:var(--muted);text-align:center;margin-bottom:28px;}
+.modal-label{
+  display:block;font-size:12px;font-weight:600;
+  color:var(--text);margin-bottom:6px;letter-spacing:.3px;
+}
+.modal-input{
+  width:100%;padding:11px 14px;border-radius:9px;
+  border:1.5px solid var(--border-md);font-size:14px;
+  font-family:var(--sans);color:var(--text);
+  background:#fff;transition:border .2s;margin-bottom:16px;
+}
+.modal-input:focus{outline:none;border-color:var(--navy);}
+.modal-btn{
+  width:100%;padding:12px;border-radius:9px;
+  background:var(--navy);color:#fff;
+  font-size:15px;font-weight:600;font-family:var(--sans);
+  border:none;cursor:pointer;transition:all .2s;margin-top:4px;
+}
+.modal-btn:hover{background:var(--navy-bright);transform:translateY(-1px);}
+.modal-btn:disabled{opacity:0.6;cursor:not-allowed;transform:none;}
+.modal-err{
+  font-size:13px;color:#b91c1c;background:#fee2e2;
+  border-radius:8px;padding:10px 14px;margin-top:12px;
+  display:none;
+}
+.modal-err.show{display:block;}
+.modal-divider{
+  text-align:center;font-size:12px;color:var(--muted);
+  margin:20px 0;position:relative;
+}
+.modal-divider::before,.modal-divider::after{
+  content:'';position:absolute;top:50%;width:42%;height:1px;
+  background:var(--border);
+}
+.modal-divider::before{left:0;}
+.modal-divider::after{right:0;}
+.modal-portal-btn{
+  width:100%;padding:11px;border-radius:9px;
+  background:var(--bg);color:var(--navy);
+  font-size:14px;font-weight:500;font-family:var(--sans);
+  border:1.5px solid var(--border-md);cursor:pointer;
+  transition:all .2s;text-decoration:none;display:block;text-align:center;
+}
+.modal-portal-btn:hover{background:var(--navy-dim);border-color:var(--navy);}
+
+
+/* ── REPORT PORTAL MODAL ── */
+#portalModal .modal-box { border-top: 3px solid var(--green); }
+
+
+/* ── PRICING TOGGLE ── */
+.pricing-toggle-wrap{display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:40px;}
+.toggle-label{font-size:14px;font-weight:500;color:var(--muted);}
+.toggle-label.active{color:var(--text);}
+.toggle-switch{
+  width:52px;height:28px;background:var(--navy);border-radius:100px;
+  position:relative;cursor:pointer;border:none;outline:none;
+  transition:background .2s;
+}
+.toggle-switch::after{
+  content:'';position:absolute;top:3px;left:3px;
+  width:22px;height:22px;border-radius:50%;background:#fff;
+  transition:transform .25s;
+}
+.toggle-switch.yearly::after{transform:translateX(24px);}
+.save-badge{
+  background:var(--green-dim);color:var(--green);
+  font-size:11px;font-weight:600;padding:3px 10px;
+  border-radius:100px;letter-spacing:.5px;
+}
+
+/* ── NEGOTIATE MODAL ── */
+.neg-overlay{
+  position:fixed;inset:0;z-index:999;
+  background:rgba(10,16,35,0.75);backdrop-filter:blur(6px);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .3s;
+}
+.neg-overlay.open{opacity:1;pointer-events:all;}
+.neg-box{
+  background:#fff;border-radius:20px;padding:36px;
+  width:100%;max-width:440px;
+  transform:translateY(20px);transition:transform .3s;
+  position:relative;
+}
+.neg-overlay.open .neg-box{transform:translateY(0);}
+.neg-close{position:absolute;top:14px;right:14px;background:none;border:none;cursor:pointer;font-size:18px;color:var(--muted);}
+.neg-title{font-family:var(--serif);font-size:22px;color:var(--text);margin-bottom:6px;}
+.neg-sub{font-size:13px;color:var(--muted);margin-bottom:24px;}
+.neg-input{
+  width:100%;padding:10px 14px;border-radius:9px;
+  border:1.5px solid var(--border-md);font-size:14px;
+  font-family:var(--sans);color:var(--text);margin-bottom:12px;
+  transition:border .2s;
+}
+.neg-input:focus{outline:none;border-color:var(--navy);}
+.neg-btn{
+  width:100%;padding:12px;border-radius:9px;
+  background:var(--gold);color:var(--dark);
+  font-size:15px;font-weight:600;font-family:var(--sans);
+  border:none;cursor:pointer;transition:all .2s;
+}
+.neg-btn:hover{background:#d4b97e;}
+.neg-success{font-size:13px;color:var(--green);background:var(--green-dim);border-radius:8px;padding:10px 14px;margin-top:12px;display:none;}
+.neg-success.show{display:block;}
+
+/* ── COMPARISON TABLE ── */
+.comparison{background:var(--dark);padding:96px 5%;color:#fff;}
+.comparison .section-title{color:#fff;}
+.comparison .section-sub{color:rgba(255,255,255,0.45);}
+.comp-table{
+  width:100%;border-collapse:collapse;margin-top:48px;
+  background:rgba(255,255,255,0.03);border-radius:16px;overflow:hidden;
+}
+.comp-table th{
+  padding:16px 20px;text-align:left;
+  font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;
+  color:rgba(255,255,255,0.4);border-bottom:1px solid rgba(255,255,255,0.08);
+}
+.comp-table th:first-child{width:28%;}
+.comp-table th.highlight{color:var(--gold);background:rgba(200,169,110,0.08);}
+.comp-table td{
+  padding:14px 20px;font-size:14px;color:rgba(255,255,255,0.7);
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
+.comp-table td.highlight{background:rgba(200,169,110,0.05);color:#fff;font-weight:500;}
+.comp-table tr:last-child td{border-bottom:none;}
+.comp-table tr:hover td{background:rgba(255,255,255,0.03);}
+.comp-yes{color:#6ee7b7;font-size:16px;}
+.comp-no{color:rgba(255,255,255,0.2);font-size:16px;}
+.comp-price-good{color:var(--gold);font-weight:600;}
+.comp-price-bad{color:rgba(255,255,255,0.35);}
+
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-brand">
+    <img src="https://raw.githubusercontent.com/evdavid70/ngo-panels/main/reportbase_icon.png" alt="ReportBase" style="height:38px;width:auto;">
+  </a>
+  <div class="nav-links">
+    <a href="#how">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#comparison">Compare</a>
+    <div class="nav-dropdown" id="guideDropdown">
+      <button class="nav-dropdown-toggle" onclick="toggleGuideMenu()">
+        Guides <span class="chevron">▼</span>
+      </button>
+      <div class="nav-dropdown-menu">
+        <a href="how-it-works.html"><span class="dm-icon">👀</span> Product Walkthrough</a>
+        <a href="dashboard-guide.html"><span class="dm-icon">🏢</span> Dashboard Guide</a>
+        <div class="nav-dropdown-divider"></div>
+        <a href="staff-guide.html"><span class="dm-icon">📱</span> Staff Guide</a>
+      </div>
+    </div>
+    <a href="#access" class="btn-nav-primary">Login</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <img src="https://raw.githubusercontent.com/evdavid70/ngo-panels/main/reportbase_logo.png" alt="ReportBase" style="height:80px;width:auto;margin-bottom:24px;filter:drop-shadow(0 4px 16px rgba(200,169,110,0.25))"><br><div class="hero-badge">Field Reporting System</div>
+  <h1>The reporting system<br>built for <em>organisations</em></h1>
+  <p>ReportBase connects your field staff, administrators, and donors — in one unified system. Collect. Manage. Report.</p>
+  <div class="hero-btns">
+    <a href="#" onclick="openLoginModal();return false;" class="btn-primary">
+      🏢 Organisation Login
+    </a>
+    <a href="how-it-works.html" class="btn-secondary">
+      👀 See How It Works
+    </a>
+  </div>
+  <div class="hero-stats">
+    <div class="hero-stat"><span class="num">3</span><span class="label">Panels</span></div>
+    <div class="hero-stat"><span class="num">13</span><span class="label">Languages</span></div>
+    <div class="hero-stat"><span class="num">GPS</span><span class="label">Field Tracking</span></div>
+    <div class="hero-stat"><span class="num">AI</span><span class="label">Review Engine</span></div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="section-label">How it works</div>
+    <h2 class="section-title">From field to insight<br>in one system</h2>
+    <div class="steps">
+      <div class="step">
+        <span class="step-num">01</span>
+        <span class="step-icon">🏢</span>
+        <h3>Admins Setup</h3>
+        <p>Organisation admins build custom forms, manage staff and departments, assign field tasks, and control everything from the Client Panel.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">02</span>
+        <span class="step-icon">📱</span>
+        <h3>Field Staff Collect</h3>
+        <p>Staff use the ReportBase Android app to fill forms, capture GPS location, photos, and signatures — works offline and syncs when connected.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">03</span>
+        <span class="step-icon">📈</span>
+        <h3>Comprehensive Reporting</h3>
+        <p>ReportBase automatically organises all field data into visual reports — trends, maps, GPS tracking, staff scorecards, and impact summaries. No spreadsheet setup, no database — it just works.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">04</span>
+        <span class="step-icon">🤖</span>
+        <h3>AI Reviews Quality</h3>
+        <p>Optional AI review engine checks submission quality and flags anomalies — so bad data never reaches your reports.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="section-label">Features</div>
+    <h2 class="section-title">Everything your<br>organisation needs</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <h3>Android Field App</h3>
+        <p>Staff collect data with custom forms, GPS coordinates, photos, signatures, and audio — works offline and syncs when connected.</p>
+        <span class="feature-tag">Android</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🗂️</div>
+        <h3>Custom Form Builder</h3>
+        <p>Build any form with 9 field types including dropdowns, multi-choice, photo capture, and conditional logic. Assign to specific staff or departments.</p>
+        <span class="feature-tag">Client Panel</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📍</div>
+        <h3>GPS Field Tracking</h3>
+        <p>Every submission is geo-tagged. View all field visits on an interactive map. Detect mock GPS attempts automatically.</p>
+        <span class="feature-tag">Field Map</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Report Portal</h3>
+        <p>Share a live report portal with donors and stakeholders. Includes trends, maps, smart metrics, impact summaries, and automated email reports.</p>
+        <span class="feature-tag">Growth+</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>AI Quality Review</h3>
+        <p>Gemini AI reviews every submission for quality and completeness. Flags bad answers before they corrupt your reports.</p>
+        <span class="feature-tag">Pro</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌍</div>
+        <h3>13 Languages</h3>
+        <p>Full support for English, Urdu, Arabic, French, Hindi, Bengali, Swahili, Dutch, Portuguese, Pashto, Sindhi, Saraiki, and Balochi.</p>
+        <span class="feature-tag">Global</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔔</div>
+        <h3>Push Notifications</h3>
+        <p>Notify field staff instantly when submissions are approved, rejected, or need resubmission. Broadcast messages to all devices.</p>
+        <span class="feature-tag">FCM</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📧</div>
+        <h3>Scheduled Email Reports</h3>
+        <p>Automatically send branded field activity reports to donors and stakeholders — daily, weekly, or monthly.</p>
+        <span class="feature-tag">Growth+</span>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Device Binding & Security</h3>
+        <p>Each staff member is bound to one device (1 user = 1 device). Admins can halt, reassign, or reset devices remotely from the Client Panel.</p>
+        <span class="feature-tag">Security</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- THREE PANELS -->
+<section class="panels" id="panels">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="section-label" style="color:rgba(200,169,110,0.7)">The System</div>
+    <h2 class="section-title">Two panels.<br>One complete system.</h2>
+    <p class="section-sub" style="color:rgba(255,255,255,0.45)">ReportBase is not just an app. It is a complete reporting system connecting your field staff, administrators, and donors.</p>
+    <div class="panels-grid">
+
+      <div class="panel-card client">
+        <span class="panel-label">For Organisations</span>
+        <h3>Client Panel</h3>
+        <p>The control centre for your organisation. Manage staff, forms, submissions, and settings from any browser.</p>
+        <ul>
+          <li>User & device management</li>
+          <li>Form builder & assignment</li>
+          <li>Submission review & approval</li>
+          <li>Department management</li>
+          <li>Logo & branding settings</li>
+        </ul>
+        <a href="https://reportbase.app/dashboard.html" class="btn-panel btn-panel-gold">
+          Login to Client Panel →
+        </a>
+      </div>
+
+      <div class="panel-card portal">
+        <span class="panel-label">For Donors & Stakeholders</span>
+        <h3>Report Portal</h3>
+        <p>A powerful analytics portal giving funders and leadership real-time visibility into field activity.</p>
+        <ul>
+          <li>Live submission trends & maps</li>
+          <li>Smart metrics & scorecards</li>
+          <li>Impact summaries (PDF ready)</li>
+          <li>Threshold alerts</li>
+          <li>Scheduled email reports</li>
+        </ul>
+        <a href="#" onclick="openPortalModal();return false;" class="btn-panel">
+          Open Report Portal →
+        </a>
+      </div>
+
+
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="section-label center">Pricing</div>
+    <h2 class="section-title center">Simple, transparent pricing</h2>
+    <p class="section-sub center" style="margin-bottom:32px;">14-day free trial on all plans · No credit card required · Cancel anytime</p>
+
+    <!-- TOGGLE -->
+    <div class="pricing-toggle-wrap">
+      <span class="toggle-label active" id="lbl-monthly">Monthly</span>
+      <button class="toggle-switch" id="billing-toggle" onclick="toggleBilling()"></button>
+      <span class="toggle-label" id="lbl-yearly">Yearly</span>
+      <span class="save-badge" id="save-badge" style="opacity:0;">Save 20%</span>
+    </div>
+
+    <div class="pricing-grid">
+
+      <!-- STARTER -->
+      <div class="price-card">
+        <div class="plan-name">Starter</div>
+        <div class="plan-desc">Small teams getting started</div>
+        <div class="plan-price" id="price-starter">$19<span>/mo</span></div>
+        <div class="plan-period" id="period-starter">billed monthly · 1 organisation</div>
+        <div style="font-size:12px;color:var(--gold);font-weight:600;text-align:center;margin:4px 0 8px;">Price negotiable</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span> 10 users · 10 devices</li>
+          <li><span class="check">✓</span> Unlimited forms</li>
+          <li><span class="check">✓</span> GPS field tracking</li>
+          <li><span class="check">✓</span> Client Panel access</li>
+          <li><span class="check">✓</span> Push notifications</li>
+          <li><span class="check">✓</span> 13 languages</li>
+          <li><span class="cross">✕</span> Report Portal</li>
+          <li><span class="cross">✕</span> AI review</li>
+        </ul>
+        <a href="https://reportbase.lemonsqueezy.com/checkout/buy/88142d78-a952-4579-a6f0-9a3abc596831" class="btn-plan btn-plan-outline" id="btn-starter" target="_blank">Start free trial</a>
+        <button onclick="openNegotiate()" style="width:100%;margin-top:8px;padding:10px;border-radius:9px;border:none;background:none;color:var(--gold);font-size:13px;font-weight:500;cursor:pointer;font-family:var(--sans);">
+          💬 Negotiate price
+        </button>
+      </div>
+
+      <!-- BASIC -->
+      <div class="price-card">
+        <div class="plan-name">Basic</div>
+        <div class="plan-desc">Small-to-medium organisations</div>
+        <div class="plan-price" id="price-basic">$35<span>/mo</span></div>
+        <div class="plan-period" id="period-basic">billed monthly · 1 organisation</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li><span class="check">&#10003;</span> 20 users &middot; 20 devices</li>
+          <li><span class="check">&#10003;</span> Unlimited forms</li>
+          <li><span class="check">&#10003;</span> GPS field tracking</li>
+          <li><span class="check">&#10003;</span> Client Panel access</li>
+          <li><span class="check">&#10003;</span> Push notifications</li>
+          <li><span class="check">&#10003;</span> 13 languages</li>
+          <li><span class="cross">&#10007;</span> Report Portal</li>
+          <li><span class="cross">&#10007;</span> AI review</li>
+        </ul>
+        <a href="https://reportbase.lemonsqueezy.com/checkout/buy/a0955df8-3036-4be6-83d6-c9689b87bef9" class="btn-plan btn-plan-outline" id="btn-basic" target="_blank">Start free trial</a>
+      </div>
+
+      <!-- GROWTH (FEATURED) -->
+      <div class="price-card featured">
+        <div class="featured-badge">Most Popular</div>
+        <div class="plan-name">Growth</div>
+        <div class="plan-desc">Growing organisations with donors</div>
+        <div class="plan-price" id="price-growth">$49<span>/mo</span></div>
+        <div class="plan-period" id="period-growth">billed monthly · 1 organisation</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span> 30 users · 30 devices</li>
+          <li><span class="check">✓</span> Unlimited forms</li>
+          <li><span class="check">✓</span> GPS field tracking</li>
+          <li><span class="check">✓</span> Client Panel access</li>
+          <li><span class="check">✓</span> Push notifications</li>
+          <li><span class="check">✓</span> 13 languages</li>
+          <li><span class="check">✓</span> Report Portal <span class="plan-tag">New</span></li>
+          <li><span class="check">✓</span> Scheduled email reports</li>
+        </ul>
+        <a href="https://reportbase.lemonsqueezy.com/checkout/buy/dbb45a38-fe83-491c-98ca-0bfe0ef42380" class="btn-plan btn-plan-gold" id="btn-growth" target="_blank">Start free trial</a>
+      </div>
+
+      <!-- PRO -->
+      <div class="price-card">
+        <div class="plan-name">Pro</div>
+        <div class="plan-desc">Large teams with quality control</div>
+        <div class="plan-price" id="price-pro">$99<span>/mo</span></div>
+        <div class="plan-period" id="period-pro">billed monthly · 1 organisation</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span> 100 users · 100 devices</li>
+          <li><span class="check">✓</span> Unlimited forms</li>
+          <li><span class="check">✓</span> GPS field tracking</li>
+          <li><span class="check">✓</span> Client Panel access</li>
+          <li><span class="check">✓</span> Push notifications</li>
+          <li><span class="check">✓</span> 13 languages</li>
+          <li><span class="check">✓</span> Report Portal</li>
+          <li><span class="check">✓</span> AI quality review <span class="plan-tag">Pro</span></li>
+        </ul>
+        <a href="https://reportbase.lemonsqueezy.com/checkout/buy/464e27e6-b8b7-4c7e-87f7-2a3fdf5cd8b0" class="btn-plan btn-plan-outline" id="btn-pro" target="_blank">Start free trial</a>
+      </div>
+
+      <!-- ENTERPRISE -->
+      <div class="price-card">
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-desc">Federations & large networks</div>
+        <div class="plan-price" style="font-size:36px">Custom</div>
+        <div class="plan-period">contact us for pricing</div>
+        <div class="plan-divider"></div>
+        <ul class="plan-features">
+          <li><span class="check">✓</span> Unlimited users & devices</li>
+          <li><span class="check">✓</span> Unlimited forms</li>
+          <li><span class="check">✓</span> GPS field tracking</li>
+          <li><span class="check">✓</span> Client Panel access</li>
+          <li><span class="check">✓</span> Push notifications</li>
+          <li><span class="check">✓</span> 13 languages</li>
+          <li><span class="check">✓</span> Report Portal</li>
+          <li><span class="check">✓</span> AI quality review</li>
+        </ul>
+        <a href="mailto:hello@reportbase.app" class="btn-plan btn-plan-outline">Contact us</a>
+      </div>
+
+    </div>
+    <p style="text-align:center;margin-top:32px;font-size:13px;color:var(--muted)">
+      All plans · Android app · Google Sheets backend · 14-day free trial · 1 user = 1 device
+    </p>
+  </div>
+</section>
+
+</section>
+
+
+<!-- COMPARISON TABLE -->
+<section class="comparison" id="comparison">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="section-label" style="color:rgba(200,169,110,0.7)">Why ReportBase</div>
+    <h2 class="section-title">How we compare</h2>
+    <p class="section-sub">ReportBase gives you more for less — purpose-built for field organisations</p>
+    <div style="overflow-x:auto;margin-top:0;">
+      <table class="comp-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="highlight">ReportBase</th>
+            <th>KoBoToolbox</th>
+            <th>CommCare</th>
+            <th>Fulcrum</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Android Field App</td>
+            <td class="highlight"><span class="comp-yes">✓</span></td>
+            <td><span class="comp-yes">✓</span></td>
+            <td><span class="comp-yes">✓</span></td>
+            <td><span class="comp-yes">✓</span></td>
+          </tr>
+          <tr>
+            <td>Offline Mode</td>
+            <td class="highlight"><span class="comp-yes">✓</span></td>
+            <td><span class="comp-yes">✓</span></td>
+            <td><span class="comp-yes">✓</span></td>
+            <td><span class="comp-yes">✓</span></td>
+          </tr>
+          <tr>
+            <td>GPS Field Tracking</td>
+            <td class="highlight"><span class="comp-yes">✓</span></td>
+            <td><span class="comp-no">✕</span></td>
+            <td><span class="comp-no">✕</span></td>
+            <td><span class="comp-yes">✓</span></td>
+          </tr>
+          <tr>
+            <td>Report Portal for Donors</td>
+            <td class="highlight"><span class="comp-yes">✓</span></td>
+            <td><span class="comp-no">✕</span></td>
+            <td><span class="comp-no">✕</span></td>
+            <td><span class="comp-no">✕</span></td>
+          </tr>
+          <tr>
+            <td>AI Quality Review</td>
+            <td class="highlight"><span class="comp-yes">✓</span></td>
+            <td><span class="comp-no">✕</span></td>
+            <td><span class="comp-no">✕</span></td>
+            <td><span class="comp-no">✕</span></td>
+          </tr>
+          <tr>
+            <td>Scheduled Email Reports</td>
+            <td class="highlight"><span class="comp-yes">✓</span></td>
+            <td><span class="comp-no">✕</span></td>
+            <td><span class="comp-no">✕</span></td>
+            <td><span class="comp-no">✕</span></td>
+          </tr>
+          <tr>
+            <td>Device Binding & Security</td>
+            <td class="highlight"><span class="comp-yes">✓</span></td>
+            <td><span class="comp-no">✕</span></td>
+            <td><span class="comp-no">✕</span></td>
+            <td><span class="comp-no">✕</span></td>
+          </tr>
+          <tr>
+            <td>13 Languages incl. Urdu/Arabic</td>
+            <td class="highlight"><span class="comp-yes">✓</span></td>
+            <td><span class="comp-yes">✓</span></td>
+            <td><span class="comp-no">✕</span></td>
+            <td><span class="comp-no">✕</span></td>
+          </tr>
+          <tr>
+            <td>Custom Form Builder</td>
+            <td class="highlight"><span class="comp-yes">✓</span></td>
+            <td><span class="comp-yes">✓</span></td>
+            <td><span class="comp-yes">✓</span></td>
+            <td><span class="comp-yes">✓</span></td>
+          </tr>
+          <tr>
+            <td>Push Notifications</td>
+            <td class="highlight"><span class="comp-yes">✓</span></td>
+            <td><span class="comp-no">✕</span></td>
+            <td><span class="comp-yes">✓</span></td>
+            <td><span class="comp-no">✕</span></td>
+          </tr>
+          <tr>
+            <td>Starting Price</td>
+            <td class="highlight"><span class="comp-price-good">$19/mo</span></td>
+            <td><span class="comp-price-bad">$100/mo</span></td>
+            <td><span class="comp-price-bad">$250/mo</span></td>
+            <td><span class="comp-price-bad">$37/user/mo</span></td>
+          </tr>
+          <tr>
+            <td>Free Trial</td>
+            <td class="highlight"><span class="comp-yes">✓ 14 days</span></td>
+            <td><span class="comp-yes">✓ Free plan</span></td>
+            <td><span class="comp-no">✕</span></td>
+            <td><span class="comp-yes">✓ 14 days</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- NEGOTIATE MODAL -->
+<div class="neg-overlay" id="negModal" onclick="closeNegModal(event)">
+  <div class="neg-box">
+    <button class="neg-close" onclick="document.getElementById('negModal').classList.remove('open')">✕</button>
+    <div class="neg-title">Negotiate Starter Price</div>
+    <div class="neg-sub">Tell us about your organisation and we'll work out a price that fits your budget.</div>
+    <input type="text" class="neg-input" id="neg-org" placeholder="Organisation name">
+    <input type="text" class="neg-input" id="neg-country" placeholder="Country">
+    <input type="text" class="neg-input" id="neg-size" placeholder="Number of staff / devices needed">
+    <input type="email" class="neg-input" id="neg-email" placeholder="Your email address">
+    <textarea class="neg-input" id="neg-msg" placeholder="Tell us about your work and budget..." style="height:80px;resize:vertical;"></textarea>
+    <button class="neg-btn" onclick="submitNegotiate()">Send Request</button>
+    <div class="neg-success" id="neg-success">✅ Request sent! We'll get back to you within 24 hours.</div>
+  </div>
+</div>
+
+<script>
+// ── BILLING TOGGLE ─────────────────────────────────────────────
+var _isYearly = false;
+var _prices = {
+  starter: { monthly: 19, yearly: 182, moEquiv: 15 },
+  basic:   { monthly: 35, yearly: 336, moEquiv: 28 },
+  growth:  { monthly: 49, yearly: 470, moEquiv: 39 },
+  pro:     { monthly: 99, yearly: 950, moEquiv: 79 }
+};
+var _links = {
+  starter: "https://reportbase.lemonsqueezy.com/checkout/buy/88142d78-a952-4579-a6f0-9a3abc596831",
+  basic:   "https://reportbase.lemonsqueezy.com/checkout/buy/a0955df8-3036-4be6-83d6-c9689b87bef9",
+  growth:  "https://reportbase.lemonsqueezy.com/checkout/buy/dbb45a38-fe83-491c-98ca-0bfe0ef42380",
+  pro:     "https://reportbase.lemonsqueezy.com/checkout/buy/464e27e6-b8b7-4c7e-87f7-2a3fdf5cd8b0"
+};
+
+function toggleBilling() {
+  _isYearly = !_isYearly;
+  var toggle = document.getElementById('billing-toggle');
+  toggle.classList.toggle('yearly', _isYearly);
+  document.getElementById('lbl-monthly').classList.toggle('active', !_isYearly);
+  document.getElementById('lbl-yearly').classList.toggle('active', _isYearly);
+  document.getElementById('save-badge').style.opacity = _isYearly ? '1' : '0';
+  updatePrices();
+}
+
+function updatePrices() {
+  ['starter','basic','growth','pro'].forEach(function(plan) {
+    var p = _prices[plan];
+    var priceEl  = document.getElementById('price-' + plan);
+    var periodEl = document.getElementById('period-' + plan);
+    if (!priceEl) return;
+    if (_isYearly) {
+      priceEl.innerHTML  = '$' + p.moEquiv + '<span>/mo</span>';
+      periodEl.innerHTML = '$' + p.yearly + ' billed yearly · save 20%';
+    } else {
+      priceEl.innerHTML  = '$' + p.monthly + '<span>/mo</span>';
+      periodEl.innerHTML = 'billed monthly · 1 organisation';
+    }
+  });
+}
+
+// ── NEGOTIATE MODAL ─────────────────────────────────────────────
+function openNegotiate() {
+  document.getElementById('negModal').classList.add('open');
+}
+function closeNegModal(e) {
+  if (e.target.id === 'negModal') document.getElementById('negModal').classList.remove('open');
+}
+function submitNegotiate() {
+  var org     = document.getElementById('neg-org').value.trim();
+  var country = document.getElementById('neg-country').value.trim();
+  var size    = document.getElementById('neg-size').value.trim();
+  var email   = document.getElementById('neg-email').value.trim();
+  var msg     = document.getElementById('neg-msg').value.trim();
+  if (!org || !email) { alert('Please enter organisation name and email.'); return; }
+  var url = 'https://script.google.com/macros/s/AKfycbwVtUduUnp0-15kqTSSNhcZ9BqsI805E5GFpTvNREAJST8hgcL_WDi5NfW2pA8rk9E/exec?action=negotiatePrice&org='+encodeURIComponent(org)
+    +'&country='+encodeURIComponent(country)
+    +'&size='+encodeURIComponent(size)
+    +'&email='+encodeURIComponent(email)
+    +'&message='+encodeURIComponent(msg);
+  fetch(url).catch(function(){});
+  document.getElementById('neg-success').classList.add('show');
+  setTimeout(function() {
+    document.getElementById('negModal').classList.remove('open');
+    document.getElementById('neg-success').classList.remove('show');
+  }, 3000);
+}
+</script>
+
+<!-- ACCESS / LOGIN -->
+<section class="access" id="access">
+  <div style="max-width:800px;margin:0 auto;text-align:center">
+    <div class="section-label center">Access</div>
+    <h2 class="section-title">Ready to get started?</h2>
+    <p class="section-sub center">Log in to your panel or contact us to set up your organisation.</p>
+    <div class="access-grid">
+      <div class="access-card">
+        <span class="access-icon">🏢</span>
+        <h3>Organisation Login</h3>
+        <p>Access the Client Panel to manage your staff, forms, and submissions.</p>
+        <a href="#" onclick="openLoginModal();return false;" class="btn-primary" style="display:inline-flex;justify-content:center">
+          Client Panel →
+        </a>
+      </div>
+      <div class="access-card">
+        <span class="access-icon">📊</span>
+        <h3>Report Portal</h3>
+        <p>View field activity reports, trends, maps, and impact summaries.</p>
+        <a href="#" onclick="openPortalModal();return false;" class="btn-primary" style="display:inline-flex;justify-content:center;background:var(--navy);color:#fff">
+          Report Portal →
+        </a>
+      </div>
+    </div>
+    <p style="margin-top:32px;font-size:14px;color:var(--muted)">
+      New organisation? Email us at <a href="mailto:hello@reportbase.app" style="color:var(--navy);font-weight:500">hello@reportbase.app</a>
+    </p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="footer-top">
+      <div>
+        <img src="https://raw.githubusercontent.com/evdavid70/ngo-panels/main/reportbase_icon.png" alt="ReportBase" style="height:48px;width:auto;margin-bottom:12px;display:block;">
+        <div class="footer-tagline">The field reporting system built for organisations that need real accountability.</div>
+      </div>
+      <div class="footer-links">
+        <h4>Learn</h4>
+        <ul>
+          <li><a href="how-it-works.html">How it Works</a></li>
+          <li><a href="dashboard-guide.html">Dashboard Guide</a></li>
+          <li><a href="staff-guide.html">Staff Guide</a></li>
+        </ul>
+      </div>
+      <div class="footer-links">
+        <h4>System</h4>
+        <ul>
+          <li><a href="https://reportbase.app/dashboard.html">Client Panel</a></li>
+          <li><a href="https://reportbase.app/report-portal.html">Report Portal</a></li>
+          <li><a href="https://play.google.com/store/apps/details?id=com.evdavid.shepreportapp">Android App</a></li>
+        </ul>
+      </div>
+      <div class="footer-links">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="#pricing">Pricing</a>
+    <a href="#comparison">Compare</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="mailto:hello@reportbase.app">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 ReportBase · All rights reserved</span>
+      <span>Built for organisations that make a difference</span>
+    </div>
+  </div>
+</footer>
+
+
+<!-- LOGIN MODAL -->
+<div class="modal-overlay" id="loginModal" onclick="closeModal(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('loginModal').classList.remove('open')">✕</button>
+    <div class="modal-logo">
+      <img src="https://raw.githubusercontent.com/evdavid70/ngo-panels/main/reportbase_logo.png" alt="ReportBase">
+    </div>
+    <div class="modal-title">Organisation Login</div>
+    <div class="modal-sub">Sign in to manage your organisation</div>
+    <label class="modal-label">Organisation Name</label>
+    <input type="text" class="modal-input" id="modal-org" placeholder="e.g. V-KARE Foundation" autocomplete="off">
+    <label class="modal-label">Password</label>
+    <input type="password" class="modal-input" id="modal-pw" placeholder="Your portal password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doModalLogin()">
+    <button class="modal-btn" id="modal-login-btn" onclick="doModalLogin()">Login →</button>
+    <div class="modal-err" id="modal-err"></div>
+    <div class="modal-divider">or</div>
+    <a href="#" onclick="document.getElementById('loginModal').classList.remove('open');openPortalModal();return false;" class="modal-portal-btn">📊 Open Report Portal</a>
+  </div>
+</div>
+
+<script>
+function openLoginModal(){
+  document.getElementById('loginModal').classList.add('open');
+  setTimeout(()=>document.getElementById('modal-org').focus(),300);
+}
+function closeModal(e){
+  if(e.target.id==='loginModal') document.getElementById('loginModal').classList.remove('open');
+}
+function doModalLogin(){
+  const org = document.getElementById('modal-org').value.trim();
+  const pw  = document.getElementById('modal-pw').value.trim();
+  const err = document.getElementById('modal-err');
+  const btn = document.getElementById('modal-login-btn');
+  err.classList.remove('show');
+  if(!org){ err.textContent='Please enter your organisation name.'; err.classList.add('show'); return; }
+  if(!pw) { err.textContent='Please enter your password.';          err.classList.add('show'); return; }
+  btn.disabled=true; btn.textContent='Signing in…';
+  const url = 'https://script.google.com/macros/s/AKfycbwVtUduUnp0-15kqTSSNhcZ9BqsI805E5GFpTvNREAJST8hgcL_WDi5NfW2pA8rk9E/exec?action=clientlogin&org='+encodeURIComponent(org.toLowerCase())+'&orgpassword='+encodeURIComponent(pw);
+  fetch(url)
+    .then(r=>r.json())
+    .then(d=>{
+      if(d.success){
+        sessionStorage.setItem('cp_org', org.toLowerCase());
+        sessionStorage.setItem('cp_pw',  pw);
+        window.location.href = 'https://reportbase.app/dashboard.html';
+      } else {
+        err.textContent = d.message || d.error || 'Invalid organisation or password.';
+        err.classList.add('show');
+        btn.disabled=false; btn.textContent='Login →';
+      }
+    })
+    .catch(()=>{
+      err.textContent='Connection error. Please try again.';
+      err.classList.add('show');
+      btn.disabled=false; btn.textContent='Login →';
+    });
+}
+</script>
+
+
+<!-- REPORT PORTAL MODAL -->
+<div class="modal-overlay" id="portalModal" onclick="closePortalModal(event)">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('portalModal').classList.remove('open')">✕</button>
+    <div class="modal-logo">
+      <img src="https://raw.githubusercontent.com/evdavid70/ngo-panels/main/reportbase_logo.png" alt="ReportBase">
+    </div>
+    <div class="modal-title">Report Portal</div>
+    <div class="modal-sub">View field activity reports, trends and impact data</div>
+    <label class="modal-label">Organisation Name</label>
+    <input type="text" class="modal-input" id="portal-org" placeholder="e.g. V-KARE Foundation" autocomplete="off">
+    <label class="modal-label">Password</label>
+    <input type="password" class="modal-input" id="portal-pw" placeholder="Your portal password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doPortalLogin()">
+    <button class="modal-btn" id="portal-login-btn" onclick="doPortalLogin()" style="background:var(--green);">Open Report Portal →</button>
+    <div class="modal-err" id="portal-err"></div>
+  </div>
+</div>
+
+<script>
+function openPortalModal(){
+  document.getElementById('portalModal').classList.add('open');
+  setTimeout(()=>document.getElementById('portal-org').focus(),300);
+}
+function closePortalModal(e){
+  if(e.target.id==='portalModal') document.getElementById('portalModal').classList.remove('open');
+}
+function doPortalLogin(){
+  const org = document.getElementById('portal-org').value.trim();
+  const pw  = document.getElementById('portal-pw').value.trim();
+  const err = document.getElementById('portal-err');
+  const btn = document.getElementById('portal-login-btn');
+  err.classList.remove('show');
+  if(!org){ err.textContent='Please enter your organisation name.'; err.classList.add('show'); return; }
+  if(!pw) { err.textContent='Please enter your password.';          err.classList.add('show'); return; }
+  btn.disabled=true; btn.textContent='Signing in…';
+  const url = 'https://script.google.com/macros/s/AKfycbwVtUduUnp0-15kqTSSNhcZ9BqsI805E5GFpTvNREAJST8hgcL_WDi5NfW2pA8rk9E/exec?action=clientlogin&org='+encodeURIComponent(org.toLowerCase())+'&orgpassword='+encodeURIComponent(pw);
+  fetch(url)
+    .then(r=>r.json())
+    .then(d=>{
+      if(d.success){
+        sessionStorage.setItem('rp_org', org.toLowerCase());
+        sessionStorage.setItem('rp_pw',  pw);
+        window.location.href = 'https://reportbase.app/report-portal.html';
+      } else {
+        err.textContent = d.message || d.error || 'Invalid organisation or password.';
+        err.classList.add('show');
+        btn.disabled=false; btn.textContent='Open Report Portal →';
+      }
+    })
+    .catch(()=>{
+      err.textContent='Connection error. Please try again.';
+      err.classList.add('show');
+      btn.disabled=false; btn.textContent='Open Report Portal →';
+    });
+}
+</script>
+
+<script>
+function toggleGuideMenu(){
+  document.getElementById('guideDropdown').classList.toggle('open');
+}
+document.addEventListener('click', function(e){
+  const dd = document.getElementById('guideDropdown');
+  if(dd && !dd.contains(e.target)) dd.classList.remove('open');
+});
+</script>
+</body>
+</html>
