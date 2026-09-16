@@ -1316,10 +1316,14 @@ function doLogout() {
 async function loadForms() {
   document.getElementById("forms-list").innerHTML = '<div class="loading-wrap"><div class="spinner"></div><span>Loading forms…</span></div>';
   try {
-    const [formRes, subRes] = await Promise.all([
-      gasCall({ action: "clientlistforms",       org: _org, orgpassword: _pw }),
-      gasCall({ action: "clientlistsubmissions", org: _org, orgpassword: _pw, limit: "500" })
-    ]);
+    // Staggered 200ms apart so GAS doesn't get hit with both calls
+    // at the exact same instant (the same fix applied to the
+    // Client Panel dashboard, which had a similar slow-load issue).
+    const formsPromise = gasCall({ action: "clientlistforms", org: _org, orgpassword: _pw });
+    await new Promise(resolve => setTimeout(resolve, 200));
+    const subsPromise = gasCall({ action: "clientlistsubmissions", org: _org, orgpassword: _pw, limit: "500" });
+
+    const [formRes, subRes] = await Promise.all([formsPromise, subsPromise]);
 
     const subCounts = {};
     const subDates  = {};

@@ -1726,7 +1726,10 @@ function loadDashboard() {
     setText("dash-staff-trend", active + " active · " + (users.length - active) + " blocked");
   });
 
-  // Devices
+  // Devices — staggered 150ms after Staff so GAS isn't hit with
+  // every dashboard call at the exact same instant (firing all 4
+  // simultaneously was causing very slow loads under the relay)
+  setTimeout(function() {
   clientCall("clientlistdevices", {}, function(d) {
     if (d.error) { setText("dash-device-val","—"); setText("dash-device-trend","Could not load"); return; }
     const devs = d.devices || [];
@@ -1752,8 +1755,10 @@ function loadDashboard() {
       setProgBar("dh-offline-bar","dh-offline-val", of, total);
     }
   });
+  }, 150);
 
-  // Submissions + forms (loaded together)
+  // Submissions + forms (loaded together) — staggered 300ms
+  setTimeout(function() {
   clientCall("clientlistsubmissions", {}, function(d) {
     if (d.error) { setText("dash-sub-val","—"); setText("dash-sub-trend","Could not load"); return; }
     const subs = d.submissions || [];
@@ -1830,8 +1835,11 @@ function loadDashboard() {
       }
     }
   });
+  }, 300);
 
-  // Forms count — also builds field label cache so Excel export shows real question text
+  // Forms count — also builds field label cache so Excel export shows
+  // real question text — staggered 450ms
+  setTimeout(function() {
   clientCall("clientlistforms", {}, function(d) {
     if (d.error) { setText("dash-form-val","—"); return; }
     const active = (d.forms||[]).filter(function(f) { return (f.status||"").toUpperCase() !== "DELETED"; });
@@ -1839,6 +1847,7 @@ function loadDashboard() {
     setText("dash-form-trend", active.length + " published");
     buildFieldLabelCache(d.forms || []);
   });
+  }, 450);
 }
 
 function setProgBar(barId, valId, count, total) {
