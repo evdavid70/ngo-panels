@@ -1247,19 +1247,29 @@ let _cbCounter     = 0;
 // Custom Analytics state
 let _caMetrics = [];  // array of { id, fieldKey, fieldLabel, agg, customLabel, result }
 
-// ── JSONP ───────────────────────────────────────
+// ── SECURE RELAY CALL ────────────────────────────
+// Sends parameters (including org/orgpassword) in a private POST
+// body to the Worker relay, instead of a visible URL. Replaces the
+// old JSONP <script src> approach. Same Promise-based signature as
+// before — every caller (await gasCall(...)) is unaffected.
 function gasCall(params) {
   return new Promise((resolve, reject) => {
-    const cb  = "cb" + (++_cbCounter);
-    const url = GAS_URL + "?" + Object.entries({ ...params, callback: cb })
-      .map(([k,v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v)).join("&");
-    const script = document.createElement("script");
-    const timer  = setTimeout(() => { cleanup(); reject(new Error("Request timed out")); }, 20000);
-    window[cb]   = (data) => { cleanup(); resolve(data); };
-    function cleanup() { clearTimeout(timer); delete window[cb]; if (script.parentNode) script.parentNode.removeChild(script); }
-    script.onerror = () => { cleanup(); reject(new Error("Network error")); };
-    script.src = url;
-    document.head.appendChild(script);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20000);
+
+    fetch(GAS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+      signal: controller.signal
+    })
+      .then(res => res.json())
+      .then(data => { clearTimeout(timer); resolve(data); })
+      .catch(err => {
+        clearTimeout(timer);
+        if (err.name === "AbortError") reject(new Error("Request timed out"));
+        else reject(new Error("Network error"));
+      });
   });
 }
 

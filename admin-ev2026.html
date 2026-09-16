@@ -961,21 +961,21 @@ let _cpwOrg      = "";
 let _editOrg     = null;   // full licence object for Edit Org modal
 let _haltTarget  = { org: "", deviceId: "", action: "" };
 
-// ── JSONP ─────────────────────────────────────────────
+// ── SECURE RELAY CALL ──────────────────────────────────
+// Sends parameters (including admintoken) in a private POST body
+// to the Worker relay, instead of a visible URL. Replaces the old
+// JSONP <script src> approach. Same signature as before — adminCall
+// and every other caller is unaffected.
 let _cbIdx = 0;
 function gasCall(params, cb) {
-  const id = "cb_" + Date.now() + "_" + (++_cbIdx);
-  window[id] = function(data) {
-    delete window[id];
-    document.getElementById(id) && document.getElementById(id).remove();
-    cb(data);
-  };
-  const qs = Object.entries(params).map(([k,v]) => k + "=" + encodeURIComponent(v)).join("&");
-  const s = document.createElement("script");
-  s.id = id;
-  s.src = GAS_URL + "?" + qs + "&callback=" + id;
-  s.onerror = () => { delete window[id]; s.remove(); cb({ error: true, message: "Network error" }); };
-  document.body.appendChild(s);
+  fetch(GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params)
+  })
+    .then(res => res.json())
+    .then(data => cb(data))
+    .catch(err => cb({ error: true, message: "Network error" }));
 }
 
 function adminCall(action, extra, cb) {

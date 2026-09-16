@@ -1566,31 +1566,31 @@ let _cbIdx = 0;
 let _allSubmissions = [], _shownSubmissions = [];
 let _fieldLabelCache = {}; // maps formName → { fieldId → humanLabel }
 
-// ── JSONP ──────────────────────────────────────────────────────────
+// ── SECURE RELAY CALL ────────────────────────────────────────────────
+// Sends parameters (including org/orgpassword) in a private POST
+// body to the Worker relay, instead of a visible URL. Replaces the
+// old JSONP <script src> approach. Same signature as before — every
+// caller (clientCall, etc.) is unaffected.
 function gasCall(params, cb) {
-  const id = "cb_" + Date.now() + "_" + (++_cbIdx);
-  let _done = false;
-  const _timer = setTimeout(function() {
-    if (_done) return; _done = true;
-    delete window[id]; const s = document.getElementById(id); if (s) s.remove();
-    cb({ error: true, message: "Request timed out. Check your internet and that GAS is deployed as a new version." });
-  }, 35000);
-  window[id] = function(data) {
-    if (_done) return; _done = true;
-    clearTimeout(_timer); delete window[id];
-    const s = document.getElementById(id); if (s) s.remove();
-    cb(data);
-  };
-  const qs = Object.entries(params).map(([k,v]) => k + "=" + encodeURIComponent(v)).join("&");
-  const s  = document.createElement("script");
-  s.id  = id;
-  s.src = GAS_URL + "?" + qs + "&callback=" + id;
-  s.onerror = () => {
-    if (_done) return; _done = true; clearTimeout(_timer);
-    delete window[id]; s.remove();
-    cb({ error: true, message: "Network error — could not reach the server. Check internet and GAS deployment." });
-  };
-  document.body.appendChild(s);
+  const controller = new AbortController();
+  const _timer = setTimeout(() => controller.abort(), 35000);
+
+  fetch(GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+    signal: controller.signal
+  })
+    .then(res => res.json())
+    .then(data => { clearTimeout(_timer); cb(data); })
+    .catch(err => {
+      clearTimeout(_timer);
+      if (err.name === "AbortError") {
+        cb({ error: true, message: "Request timed out. Check your internet and that GAS is deployed as a new version." });
+      } else {
+        cb({ error: true, message: "Network error — could not reach the server. Check internet and GAS deployment." });
+      }
+    });
 }
 
 function clientCall(action, extra, cb) {
