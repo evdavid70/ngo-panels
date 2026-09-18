@@ -1552,7 +1552,7 @@ function googleTranslateElementInit() {
 
 <!-- ═══════ JAVASCRIPT ═══════ -->
 <script>
-const GAS_URL = "https://relay.reportbase.app";
+const GAS_URL = "https://reportbase-gas-relay.ernestvdavid.workers.dev";
 
 let _org = "", _orgPw = "", _orgData = {};
 let _deptCache = [];
@@ -1637,8 +1637,14 @@ function signIn() {
     document.getElementById("app").style.display = "flex";
     populateOrgDetails(d);
     loadDashboard();
-    loadUsers();
-    refreshDeptCache();
+    // Staggered after the dashboard's own calls so login doesn't fire
+    // 3 requests to GAS at the exact same instant. loadUsers and
+    // refreshDeptCache used to fire immediately, right alongside the
+    // dashboard's first call — that burst was making refreshDeptCache
+    // fail silently more often than it should, which then meant every
+    // later Add/Edit User department load had to retry from scratch.
+    setTimeout(loadUsers, 600);
+    setTimeout(refreshDeptCache, 750);
     startDeviceAutoRefresh();
   });
 }
@@ -1658,8 +1664,9 @@ function tryRestoreSession() {
       document.getElementById("app").style.display = "flex";
       populateOrgDetails(d);
       loadDashboard();
-      loadUsers();
-      refreshDeptCache();
+      // Staggered — see loginSubmit() for why
+      setTimeout(loadUsers, 600);
+      setTimeout(refreshDeptCache, 750);
       startDeviceAutoRefresh();
     });
   } catch(e) {}
@@ -1710,6 +1717,20 @@ function signOut() {
 }
 
 // ── DASHBOARD ──────────────────────────────────────────────────────
+// Shows a "Could not load" state in a stat box's trend line with a
+// clickable Retry link that re-runs just that one widget's call —
+// so a single slow/failed box (rare, but does happen when GAS is
+// briefly unresponsive) can be retried on its own, without reloading
+// the whole dashboard.
+function showDashLoadError(valId, trendId, retryFnName) {
+  setText(valId, "—");
+  const el = document.getElementById(trendId);
+  if (el) {
+    el.innerHTML = 'Could not load · <a href="javascript:void(0)" onclick="' + retryFnName + '()" style="text-decoration:underline;cursor:pointer">Retry</a>';
+    el.className = "dash-stat-trend trend-r";
+  }
+}
+
 function loadDashboard() {
   // Reset stat values
   ["dash-staff-val","dash-device-val","dash-sub-val","dash-form-val"].forEach(function(id) {
@@ -1717,21 +1738,32 @@ function loadDashboard() {
     if (el) el.innerHTML = '<span class="spin"></span>';
   });
 
-  // Staff
+  loadDashStaff();
+  // Devices — staggered 150ms after Staff so GAS isn't hit with
+  // every dashboard call at the exact same instant (firing all 4
+  // simultaneously was causing very slow loads under the relay)
+  setTimeout(loadDashDevices, 150);
+  // Submissions + forms (loaded together) — staggered 300ms
+  setTimeout(loadDashSubmissions, 300);
+  // Forms count — also builds field label cache so Excel export shows
+  // real question text — staggered 450ms
+  setTimeout(loadDashForms, 450);
+}
+
+// Staff
+function loadDashStaff() {
   clientCall("clientlistusers", {}, function(d) {
-    if (d.error) { setText("dash-staff-val","—"); setText("dash-staff-trend","Could not load"); return; }
+    if (d.error) { showDashLoadError("dash-staff-val","dash-staff-trend","loadDashStaff"); return; }
     const users = d.users || [];
     const active = users.filter(function(u) { return (u.status||"").toUpperCase() !== "BLOCKED"; }).length;
     setText("dash-staff-val", users.length);
     setText("dash-staff-trend", active + " active · " + (users.length - active) + " blocked");
   });
+}
 
-  // Devices — staggered 150ms after Staff so GAS isn't hit with
-  // every dashboard call at the exact same instant (firing all 4
-  // simultaneously was causing very slow loads under the relay)
-  setTimeout(function() {
+function loadDashDevices() {
   clientCall("clientlistdevices", {}, function(d) {
-    if (d.error) { setText("dash-device-val","—"); setText("dash-device-trend","Could not load"); return; }
+    if (d.error) { showDashLoadError("dash-device-val","dash-device-trend","loadDashDevices"); return; }
     const devs = d.devices || [];
     const total = d.deviceCount || devs.length;
     let ac = 0, ha = 0, of = 0;
@@ -1755,12 +1787,11 @@ function loadDashboard() {
       setProgBar("dh-offline-bar","dh-offline-val", of, total);
     }
   });
-  }, 150);
+}
 
-  // Submissions + forms (loaded together) — staggered 300ms
-  setTimeout(function() {
+function loadDashSubmissions() {
   clientCall("clientlistsubmissions", {}, function(d) {
-    if (d.error) { setText("dash-sub-val","—"); setText("dash-sub-trend","Could not load"); return; }
+    if (d.error) { showDashLoadError("dash-sub-val","dash-sub-trend","loadDashSubmissions"); return; }
     const subs = d.submissions || [];
     _allSubmissions = subs;
     setText("dash-sub-val", subs.length);
@@ -1835,19 +1866,16 @@ function loadDashboard() {
       }
     }
   });
-  }, 300);
+}
 
-  // Forms count — also builds field label cache so Excel export shows
-  // real question text — staggered 450ms
-  setTimeout(function() {
+function loadDashForms() {
   clientCall("clientlistforms", {}, function(d) {
-    if (d.error) { setText("dash-form-val","—"); return; }
+    if (d.error) { showDashLoadError("dash-form-val","dash-form-trend","loadDashForms"); return; }
     const active = (d.forms||[]).filter(function(f) { return (f.status||"").toUpperCase() !== "DELETED"; });
     setText("dash-form-val", active.length);
     setText("dash-form-trend", active.length + " published");
     buildFieldLabelCache(d.forms || []);
   });
-  }, 450);
 }
 
 function setProgBar(barId, valId, count, total) {
@@ -3661,7 +3689,12 @@ function loadDeptsIntoChecklist(divId, currentDepts) {
   if (_deptCache.length > 0) { populateFromList(_deptCache); return; }
   wrap.innerHTML = '<span style="color:var(--muted);font-size:12px"><span class="spin"></span>Loading…</span>';
   clientCall("clientlistdepartments", {}, function(d) {
-    if (d.error) { wrap.innerHTML = '<span style="color:var(--muted);font-size:12px">Could not load departments.</span>'; return; }
+    if (d.error) {
+      wrap.innerHTML = '<span style="color:var(--muted);font-size:12px">Could not load departments · '
+        + '<a href="javascript:void(0)" onclick="loadDeptsIntoChecklist(\'' + esc(divId) + '\',\'' + esc(currentDepts||"") + '\')" style="text-decoration:underline;cursor:pointer">Retry</a>'
+        + '</span>';
+      return;
+    }
     _deptCache = d.departments || [];
     populateFromList(_deptCache);
   });
@@ -5161,6 +5194,21 @@ function loadAiKeyStatus() {
   loadAiReviewSetting();
 }
 
+// Normalizes a value coming back from GAS into a real boolean. Sheets
+// / GAS very often hand booleans back as the text "true"/"false"
+// rather than an actual JS true/false — comparing a string directly
+// against the boolean `false` (e.g. `x !== false`) always comes out
+// true for the string "false", which was why AI Review kept showing
+// as ON immediately after being turned off and saved. defaultVal is
+// used when the value is missing entirely (unset → default ON, per
+// how this setting is supposed to behave).
+function toBool(v, defaultVal) {
+  if (v === undefined || v === null || v === "") return defaultVal;
+  if (typeof v === "boolean") return v;
+  if (typeof v === "string") return v.trim().toLowerCase() === "true";
+  return !!v;
+}
+
 function loadAiReviewSetting() {
   const bar = document.getElementById("ai-review-status-bar");
   if (bar) { bar.textContent = "🔄 Loading…"; bar.style.background="var(--blue-dim)"; bar.style.color="var(--blue)"; bar.style.borderColor="var(--blue)"; }
@@ -5170,7 +5218,7 @@ function loadAiReviewSetting() {
       return;
     }
     if (bar) bar.textContent = "";
-    if (d.admin_override === true) {
+    if (toBool(d.admin_override, false)) {
       setAiReviewToggleUI(false);
       var wrap = document.getElementById("ai-review-toggle-wrap");
       if (wrap) { wrap.style.opacity="0.4"; wrap.style.cursor="not-allowed"; wrap.onclick=null; }
@@ -5179,7 +5227,7 @@ function loadAiReviewSetting() {
       if (bar) { bar.textContent = "🔒 AI review has been disabled by your system administrator."; bar.style.background="var(--yellow-dim)"; bar.style.color="var(--yellow)"; bar.style.borderColor="var(--yellow)"; bar.style.display="block"; }
       return;
     }
-    setAiReviewToggleUI(d.ai_review_enabled !== false);
+    setAiReviewToggleUI(toBool(d.ai_review_enabled, true));
   });
 }
 
