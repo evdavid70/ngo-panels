@@ -1654,22 +1654,50 @@ function tryRestoreSession() {
     const org = sessionStorage.getItem("cp_org");
     const pw  = sessionStorage.getItem("cp_pw");
     if (!org || !pw) return;
-    gasCall({ action: "clientlogin", org, orgpassword: pw }, function(d) {
-      if (d.error) return;
-      _org = org; _orgPw = pw; _orgData = d;
-      document.getElementById("login-overlay").style.display = "none";
-      // Remove early-hide style
-      var earlyStyle = document.querySelector('style');
-      if(earlyStyle && earlyStyle.textContent.indexOf('pointer-events: none') >= 0) earlyStyle.remove();
-      document.getElementById("app").style.display = "flex";
-      populateOrgDetails(d);
-      loadDashboard();
-      // Staggered — see loginSubmit() for why
-      setTimeout(loadUsers, 600);
-      setTimeout(refreshDeptCache, 750);
-      startDeviceAutoRefresh();
-    });
+    attemptRestoreLogin(org, pw, true);
   } catch(e) {}
+}
+
+// A style injected at the very top of <head> hides the login screen
+// (invisible AND unclickable) the instant a saved session is found,
+// so returning users don't see a flash of the login form before
+// being auto-logged-in. If that quiet login fails and nothing undoes
+// this style, the page is left permanently blank with nothing to
+// click — that used to require a manual refresh (sometimes several)
+// to escape. isFirstTry gives it one silent retry after a short
+// pause first, since a single failed attempt (the same occasional
+// GAS hiccup seen elsewhere in this app) is common enough that most
+// of the time a second try succeeds with no visible interruption at
+// all. Only if both attempts fail does it fall back to a normal,
+// visible, usable login screen instead of leaving the page blank.
+function attemptRestoreLogin(org, pw, isFirstTry) {
+  gasCall({ action: "clientlogin", org, orgpassword: pw }, function(d) {
+    if (d.error) {
+      if (isFirstTry) {
+        setTimeout(function() { attemptRestoreLogin(org, pw, false); }, 2000);
+        return;
+      }
+      var earlyStyle = document.querySelector('style');
+      if (earlyStyle && earlyStyle.textContent.indexOf('pointer-events: none') >= 0) earlyStyle.remove();
+      var orgField = document.getElementById("login-org");
+      if (orgField) orgField.value = org;
+      var errEl = document.getElementById("login-err");
+      if (errEl) errEl.textContent = "❌ Could not restore your session — please log in again.";
+      return;
+    }
+    _org = org; _orgPw = pw; _orgData = d;
+    document.getElementById("login-overlay").style.display = "none";
+    // Remove early-hide style
+    var earlyStyle = document.querySelector('style');
+    if(earlyStyle && earlyStyle.textContent.indexOf('pointer-events: none') >= 0) earlyStyle.remove();
+    document.getElementById("app").style.display = "flex";
+    populateOrgDetails(d);
+    loadDashboard();
+    // Staggered — see loginSubmit() for why
+    setTimeout(loadUsers, 600);
+    setTimeout(refreshDeptCache, 750);
+    startDeviceAutoRefresh();
+  });
 }
 
 const DEVICE_REFRESH_MS = 6 * 60 * 60 * 1000;
@@ -3623,7 +3651,7 @@ function changePassword() {
 function loadUsers() {
   setTableLoading("users-body", 6);
   clientCall("clientlistusers", {}, function(d) {
-    if (d.error) { toast(d.message, "error"); return; }
+    if (d.error) { toast(d.message, "error"); setTableLoadError("users-body", 6, "loadUsers"); return; }
     renderUsers(d.users || []);
   });
 }
@@ -3837,7 +3865,7 @@ function loadDevices() {
   document.getElementById("device-summary").style.display = "none";
   document.getElementById("halted-info").style.display   = "none";
   clientCall("clientlistdevices", {}, function(d) {
-    if (d.error) { toast(d.message, "error"); return; }
+    if (d.error) { toast(d.message, "error"); setTableLoadError("devices-body", 7, "loadDevices"); return; }
     renderDevices(d.devices || [], d.deviceCount || 0, d.maxDevices || 10);
   });
 }
@@ -3998,7 +4026,7 @@ function loadDepts() {
   document.getElementById("depts-list").innerHTML = '<div class="empty-state"><span class="spin"></span>Loading…</div>';
   document.getElementById("dept-count-bar").style.display = "none";
   clientCall("clientlistdepartments", {}, function(d) {
-    if (d.error) { toast(d.message, "error"); return; }
+    if (d.error) { toast(d.message, "error"); setListLoadError("depts-list", "loadDepts"); return; }
     const depts = d.departments || [];
     clientCall("clientlistusers", {}, function(ud) {
       _allUsersForDepts = ud.error ? [] : (ud.users || []);
@@ -4109,7 +4137,7 @@ function loadSubmissions() {
   setTableLoading("submissions-body", 11);
   document.getElementById("sub-count-bar").style.display = "none";
   clientCall("clientlistsubmissions", {}, function(d) {
-    if (d.error) { toast(d.message, "error"); return; }
+    if (d.error) { toast(d.message, "error"); setTableLoadError("submissions-body", 11, "loadSubmissions"); return; }
     _allSubmissions = d.submissions || [];
     populateSubFilters(_allSubmissions);
     applySubFilters();
@@ -4431,7 +4459,7 @@ function loadForms() {
   document.getElementById("forms-list").innerHTML = '<div class="empty-state"><span class="spin"></span>Loading…</div>';
   document.getElementById("forms-count-bar").style.display = "none";
   clientCall("clientlistforms", {}, function(d) {
-    if (d.error) { toast(d.message, "error"); return; }
+    if (d.error) { toast(d.message, "error"); setListLoadError("forms-list", "loadForms"); return; }
     buildFieldLabelCache(d.forms || []); // refresh cache with latest field definitions
     renderForms(d.forms || []);
   });
@@ -5296,6 +5324,23 @@ function fmtDate(str) {
 function setTableLoading(tbodyId, cols) {
   document.getElementById(tbodyId).innerHTML =
     `<tr class="loading-row"><td colspan="${cols}"><span class="spin"></span>Loading…</td></tr>`;
+}
+
+// The 5 main tabs (Staff Users, Devices, Submissions, Departments,
+// Forms) used to leave a permanent spinner on screen if their load
+// call failed — only a toast appeared, which fades away, so a real
+// failure looked identical to "stuck loading" with no way to retry
+// short of leaving the tab and coming back. These two helpers swap
+// the stuck spinner for a clear "Could not load · Retry" state,
+// matching the pattern already used on the Dashboard's own stat
+// boxes and the Departments checklist in Add/Edit User.
+function setTableLoadError(tbodyId, cols, retryFnName) {
+  const el = document.getElementById(tbodyId);
+  if (el) el.innerHTML = '<tr class="loading-row"><td colspan="' + cols + '">Could not load · <a href="javascript:void(0)" onclick="' + retryFnName + '()" style="text-decoration:underline;cursor:pointer">Retry</a></td></tr>';
+}
+function setListLoadError(elId, retryFnName) {
+  const el = document.getElementById(elId);
+  if (el) el.innerHTML = '<div class="empty-state">Could not load · <a href="javascript:void(0)" onclick="' + retryFnName + '()" style="text-decoration:underline;cursor:pointer">Retry</a></div>';
 }
 
 let _toastTimer;
