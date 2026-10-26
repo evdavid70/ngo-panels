@@ -759,6 +759,9 @@ function googleTranslateElementInit() {
       <button class="nav-item" id="nav-forms" onclick="showTab('forms',this)">
         <span class="ni-icon">📋</span><span class="ni-label">Forms</span>
       </button>
+      <button class="nav-item" id="nav-portalsettings" onclick="showTab('portalsettings',this)">
+        <span class="ni-icon">📊</span><span class="ni-label">Donor Report Settings</span>
+      </button>
 
       <div class="nav-section">Tools</div>
       <button class="nav-item" id="nav-broadcast" onclick="showTab('broadcast',this)">
@@ -1057,6 +1060,54 @@ function googleTranslateElementInit() {
           </span>
         </div>
         <div id="forms-list"><div class="empty-state"><span class="spin"></span>Loading…</div></div>
+      </div>
+
+      <!-- ── DONOR REPORT SETTINGS (v2.49) ── -->
+      <div id="tab-portalsettings" class="tab-panel">
+        <div class="info-card">
+          <h3>📊 Donor Report Settings</h3>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.7">
+            Choose what donors see in the <b>Donor Report Portal</b> for each form.
+            These settings are saved on the server, so every donor sees the same report.
+          </p>
+          <div class="form-group">
+            <label>1. Choose a form</label>
+            <select class="form-input" id="ps-form" onchange="psSelectForm(this.value)">
+              <option value="">Loading forms…</option>
+            </select>
+          </div>
+          <div id="ps-body" style="display:none">
+            <div class="form-group">
+              <label>2. Which question holds the centre name?</label>
+              <select class="form-input" id="ps-centre"></select>
+              <div class="form-hint">The map groups reports by this centre name and also shows which staff member submitted them.
+                Choose <b>"Staff name only"</b> if the form has no centre-name question.</div>
+            </div>
+            <div class="form-group">
+              <label>3. Location alert distance (metres)</label>
+              <input type="number" class="form-input" id="ps-metres" min="50" max="50000" step="50" value="500" style="max-width:180px">
+              <div class="form-hint">A report sent from further than this away from its centre's usual location is flagged as a <b>Location Alert</b>. Recommended: 500.</div>
+            </div>
+            <div class="form-group">
+              <label>4. Number fields — show as Total, Average, or Hide</label>
+              <div class="form-hint" style="margin-bottom:10px">Dates, times, page numbers and phone numbers should be set to <b>Hide</b> — adding or averaging them gives meaningless numbers.</div>
+              <label style="display:flex;align-items:center;gap:8px;font-weight:500;color:var(--text);margin-bottom:10px;cursor:pointer">
+                <input type="checkbox" id="ps-showall" onchange="psRenderFields()"> Also show text and other field types
+              </label>
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>Field</th><th>Type</th><th>Show in donor report</th></tr></thead>
+                  <tbody id="ps-fields-body"></tbody>
+                </table>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:6px">
+              <button class="btn btn-primary btn-sm" id="ps-save-btn" onclick="psSave()">💾 Save Settings</button>
+              <button class="btn btn-ghost btn-sm" onclick="psReset()">↺ Reset to Defaults</button>
+            </div>
+            <div id="ps-status" style="margin-top:12px;font-size:12px;color:var(--muted)"></div>
+          </div>
+        </div>
       </div>
 
       <!-- ── ORG DETAILS ── -->
@@ -1602,6 +1653,7 @@ const TAB_TITLES = {
   dashboard: "Dashboard", users: "Staff Users", departments: "Departments",
   devices: "Registered Devices", broadcast: "Broadcast", submissions: "Submissions",
   forms: "Form Templates", orgdetails: "Org Details", aisettings: "AI Settings",
+  portalsettings: "Donor Report Settings",
   changepassword: "Change Password"
 };
 
@@ -1617,6 +1669,7 @@ function showTab(name, btn) {
   if (name === "submissions") loadSubmissions();
   if (name === "forms")       loadForms();
   if (name === "aisettings")  loadAiKeyStatus();
+  if (name === "portalsettings") psInit();
   if (name === "dashboard")   loadDashboard();
 }
 
@@ -5313,6 +5366,142 @@ function doDeleteAiKey() {
 // ── HELPERS ────────────────────────────────────────────────────────
 function openModal(id)  { document.getElementById(id).classList.add("open"); }
 function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+// ── DONOR REPORT SETTINGS (v2.49) ──────────────────────────────────
+// Saves, per form, how the Donor Portal shows each number field
+// (Total / Average / Hide), which question holds the centre name,
+// and the location-alert distance. Stored on the server via the
+// clientsaveportalconfig / clientgetportalconfig GAS actions.
+// Field keys are "ext_field_<index>" — the same keys the app writes
+// into values_json and the Donor Portal reads.
+let _psForms = [], _psFormId = "", _psFields = [], _psConfig = {};
+const PS_NUMERIC_TYPES = ["NUMBER", "RATING"];
+
+function psInit() {
+  const sel = document.getElementById("ps-form");
+  sel.innerHTML = '<option value="">Loading forms…</option>';
+  document.getElementById("ps-body").style.display = "none";
+  clientCall("clientlistforms", {}, function(d) {
+    if (d.error) { toast(d.message, "error"); sel.innerHTML = '<option value="">Could not load forms</option>'; return; }
+    _psForms = (d.forms || []).filter(f => (f.status || "").toUpperCase() === "ACTIVE");
+    if (!_psForms.length) { sel.innerHTML = '<option value="">No active forms</option>'; return; }
+    sel.innerHTML = '<option value="">— Select a form —</option>' +
+      _psForms.map(f => `<option value="${esc(f.form_id)}">${esc(f.form_name)}</option>`).join("");
+    if (_psFormId && _psForms.some(f => f.form_id === _psFormId)) { sel.value = _psFormId; psSelectForm(_psFormId); }
+  });
+}
+
+function psSelectForm(formId) {
+  _psFormId = formId;
+  const body = document.getElementById("ps-body");
+  if (!formId) { body.style.display = "none"; return; }
+  const form = _psForms.find(f => f.form_id === formId);
+  _psFields = [];
+  try {
+    JSON.parse(form.fields_json || "[]").forEach(function(f, i) {
+      _psFields.push({ key: "ext_field_" + i, label: f.label || f.name || ("Field " + (i + 1)), type: String(f.type || "TEXT").toUpperCase() });
+    });
+  } catch(e) {}
+  setText("ps-status", "Loading saved settings…");
+  body.style.display = "block";
+  document.getElementById("ps-fields-body").innerHTML = '<tr class="loading-row"><td colspan="3"><span class="spin"></span>Loading…</td></tr>';
+  clientCall("clientgetportalconfig", { form_id: formId }, function(d) {
+    if (d.error) {
+      toast(d.message, "error");
+      setText("ps-status", "⚠️ Could not load saved settings: " + d.message);
+      _psConfig = {};
+    } else {
+      _psConfig = d.config || {};
+      setText("ps-status", _psConfig.updated_at ? "Last saved: " + fmtDate(_psConfig.updated_at) : "No settings saved yet — showing defaults.");
+    }
+    psFillForm();
+  });
+}
+
+function psDefaultMode(field) {
+  return PS_NUMERIC_TYPES.includes(field.type) ? "total" : "hide";
+}
+
+function psFillForm() {
+  const centreSel = document.getElementById("ps-centre");
+  const textFields = _psFields.filter(f => !["PHOTO","SIGNATURE","AUDIO","GPS"].includes(f.type));
+  centreSel.innerHTML = '<option value="">Staff name only (no centre question)</option>' +
+    textFields.map(f => `<option value="${esc(f.key)}">${esc(f.label)}</option>`).join("");
+  let centre = _psConfig.centre_field;
+  if (centre === undefined) {
+    const guess = _psFields.find(f => /centre name|center name|سنٹر/i.test(f.label));
+    centre = guess ? guess.key : "";
+  }
+  centreSel.value = centre || "";
+  document.getElementById("ps-metres").value = _psConfig.alert_metres || 500;
+  psRenderFields();
+}
+
+function psRenderFields() {
+  const showAll = document.getElementById("ps-showall").checked;
+  const saved   = (_psConfig.fields || {});
+  // Keep any choices already made on screen when toggling "show all".
+  document.querySelectorAll("#ps-fields-body select[data-key]").forEach(function(s) { saved[s.dataset.key] = s.value; });
+  _psConfig.fields = saved;
+  const list = _psFields.filter(f => showAll || PS_NUMERIC_TYPES.includes(f.type) || saved[f.key] === "total" || saved[f.key] === "avg");
+  const tbody = document.getElementById("ps-fields-body");
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="color:var(--muted)">This form has no NUMBER fields. Tick "Also show text and other field types" if numbers are typed into text fields.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(function(f) {
+    const mode = saved[f.key] || psDefaultMode(f);
+    return `<tr>
+      <td>${esc(f.label)}</td>
+      <td><span class="type-badge">${esc(f.type)}</span></td>
+      <td><select class="form-input" data-key="${esc(f.key)}" style="max-width:170px;padding:6px 10px">
+        <option value="total" ${mode === "total" ? "selected" : ""}>Total (add up)</option>
+        <option value="avg"   ${mode === "avg"   ? "selected" : ""}>Average</option>
+        <option value="hide"  ${mode === "hide"  ? "selected" : ""}>Hide</option>
+      </select></td>
+    </tr>`;
+  }).join("");
+}
+
+function psCollect() {
+  const fields = {};
+  // Start from saved choices so fields hidden by the "show all" filter keep their setting.
+  Object.keys(_psConfig.fields || {}).forEach(k => { fields[k] = _psConfig.fields[k]; });
+  document.querySelectorAll("#ps-fields-body select[data-key]").forEach(function(s) { fields[s.dataset.key] = s.value; });
+  // Every field not chosen yet gets its default, so the portal knows exactly what to show.
+  _psFields.forEach(f => { if (!fields[f.key]) fields[f.key] = psDefaultMode(f); });
+  let metres = parseInt(document.getElementById("ps-metres").value, 10);
+  if (isNaN(metres) || metres < 50) metres = 500;
+  return { centre_field: document.getElementById("ps-centre").value, alert_metres: metres, fields: fields };
+}
+
+function psSave() {
+  if (!_psFormId) { toast("Choose a form first", "error"); return; }
+  const cfg = psCollect();
+  const btn = document.getElementById("ps-save-btn");
+  btn.disabled = true; btn.textContent = "Saving…";
+  clientCall("clientsaveportalconfig", { form_id: _psFormId, config: JSON.stringify(cfg) }, function(d) {
+    btn.disabled = false; btn.textContent = "💾 Save Settings";
+    if (d.error) { toast(d.message, "error"); setText("ps-status", "⚠️ Not saved: " + d.message); return; }
+    _psConfig = d.config || cfg;
+    setText("ps-status", "✅ Saved. Donors will see these settings next time they open or refresh the report.");
+    toast("Donor report settings saved", "success");
+  });
+}
+
+function psReset() {
+  if (!_psFormId) return;
+  if (!confirm("Reset this form's donor report settings to the defaults?")) return;
+  clientCall("clientsaveportalconfig", { form_id: _psFormId, config: "" }, function(d) {
+    if (d.error) { toast(d.message, "error"); return; }
+    _psConfig = {};
+    document.getElementById("ps-showall").checked = false;
+    document.getElementById("ps-fields-body").innerHTML = "";
+    psFillForm();
+    setText("ps-status", "Settings reset to defaults.");
+    toast("Reset to defaults", "success");
+  });
+}
+
 function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
 function esc(s) {
   return String(s || "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
